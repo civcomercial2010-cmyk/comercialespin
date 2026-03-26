@@ -636,6 +636,7 @@ html, body {
 
 <script>
 'use strict';
+/* __DATOS_INYECTADOS__ */
 const MONTHS_ES    = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const LS_KEY = 'hipopotamo_v2';
@@ -648,6 +649,20 @@ const HC = {
       2024:[67771,71061,80457,98811,85229,80531,72108,52790,89149,68877,69733,71648],
       2025:[40118,65146,68093,64989,69148,93969,90198,68654,97134,59863,74993,93577],
       2026:[41824,72571,83410,null,null,null,null,null,null,null,null,null]
+    },
+    bonos: {
+      '2025-01':{altas:48917,consumo:32059},
+      '2025-02':{altas:24203,consumo:41955},
+      '2025-03':{altas:27848,consumo:48550},
+      '2025-04':{altas:22411,consumo:40552},
+      '2025-05':{altas:41300,consumo:49666},
+      '2025-06':{altas:38652,consumo:64064},
+      '2025-07':{altas:52402,consumo:57774},
+      '2025-08':{altas:36000,consumo:43034},
+      '2025-09':{altas:66600,consumo:64171},
+      '2025-10':{altas:83450,consumo:52269},
+      '2025-11':{altas:81370,consumo:52653},
+      '2025-12':{altas:54700,consumo:71011}
     }
   },
   ursula: {
@@ -657,6 +672,20 @@ const HC = {
       2024:[15658,17009,17277,16423,17628,22996,39689,12845,25957,19027,22206,22696],
       2025:[17499,15793,23216,27718,20708,24316,36622,20820,36654,25591,27938,20828],
       2026:[16856,20750,32518,null,null,null,null,null,null,null,null,null]
+    },
+    bonos: {
+      '2025-01':{altas:8000, consumo:9724},
+      '2025-02':{altas:13200,consumo:7174},
+      '2025-03':{altas:9300, consumo:16220},
+      '2025-04':{altas:5635, consumo:12524},
+      '2025-05':{altas:10583,consumo:8852},
+      '2025-06':{altas:9000, consumo:11717},
+      '2025-07':{altas:10500,consumo:11745},
+      '2025-08':{altas:5000, consumo:10686},
+      '2025-09':{altas:18560,consumo:16426},
+      '2025-10':{altas:10242,consumo:14382},
+      '2025-11':{altas:23848,consumo:15795},
+      '2025-12':{altas:10226,consumo:11703}
     }
   }
 };
@@ -785,11 +814,15 @@ function getMerged(){
   const lsBudU = ls?.ursula?.budget2026;
   const budC = lsBudC ? HC.cavero.budget2026.map((v,i)=>lsBudC[i]??v) : [...HC.cavero.budget2026];
   const budU = lsBudU ? HC.ursula.budget2026.map((v,i)=>lsBudU[i]??v) : [...HC.ursula.budget2026];
+  // Bonos: HC hardcoded (2025) + localStorage (meses posteriores via ERP/manual)
+  // LS wins para el mismo mes (datos más recientes tienen prioridad)
+  const mergedBonosC = Object.assign({}, HC.cavero.bonos||{}, ls?.cavero?.bonos||{});
+  const mergedBonosU = Object.assign({}, HC.ursula.bonos||{}, ls?.ursula?.bonos||{});
   const data={
     cavero:{budget2026:budC,monthly:{},
       industria:ls?.cavero?.industria||{},distribuidores:ls?.cavero?.distribuidores||{},
-      bonos:ls?.cavero?.bonos||{}},
-    ursula:{budget2026:budU,monthly:{},bonos:ls?.ursula?.bonos||{}}
+      bonos:mergedBonosC},
+    ursula:{budget2026:budU,monthly:{},bonos:mergedBonosU}
   };
   for(const yr of[2023,2024,2025,2026]){
     const hcC=HC.cavero.monthly[yr]||Array(12).fill(null);
