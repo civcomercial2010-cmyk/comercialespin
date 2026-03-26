@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hipopótamo Pinturas — Cuadro de Mando 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  color-scheme: light;
+  --blue:      #1a56e8;
+  --blue-lt:   #eef3fd;
+  --blue-md:   #c5d7f8;
+  --green:     #0d9f6e;
+  --green-lt:  #e8fbf3;
+  --green-md:  #a7f0d0;
+  --red:       #d93025;
+  --amber:     #c47a0a;
+  --bg:        #f0eeea;
+  --srf:       #ffffff;
+  --srf2:      #f6f5f1;
+  --bdr:       #e0ddd6;
+  --bdr2:      #ccc9c0;
+  --txt:       #1c1b19;
+  --txt2:      #5c5a55;
+  --txt3:      #9c9a93;
+  --shd:       0 1px 4px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+  --r-sm:      8px;
+  --r-md:      12px;
+  --r-lg:      16px;
+}
+html, body {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px; line-height: 1.5;
+  background: var(--bg); color: var(--txt); min-height: 100vh;
+}
+/* HEADER */
+.app-header {
+  background: var(--srf); border-bottom: 1px solid var(--bdr);
+  padding: 0 24px; display: flex; align-items: center;
+  justify-content: space-between; height: 64px;
+  position: sticky; top: 0; z-index: 100;
+}
+.app-header-left { display: flex; align-items: center; gap: 14px; }
+.app-logo {
+  width: 38px; height: 38px; border-radius: 8px;
+  background: linear-gradient(135deg, #1a56e8, #0d9f6e);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 18px; font-weight: 700; flex-shrink: 0;
+}
+.app-title    { font-size: 17px; font-weight: 700; }
+.app-subtitle { font-size: 13px; color: var(--txt2); }
+.date-badge {
+  background: var(--srf2); border: 1px solid var(--bdr);
+  border-radius: var(--r-sm); padding: 7px 16px; text-align: right;
+}
+.date-badge .db-lbl  { font-size: 11px; color: var(--txt3); text-transform: uppercase; letter-spacing:.05em; }
+.date-badge .db-date { font-size: 14px; font-weight: 700; color: var(--txt); }
+/* TABS */
+.tab-bar {
+  background: var(--srf); border-bottom: 1px solid var(--bdr);
+  padding: 0 24px; display: flex;
+}
+.tab-btn {
+  padding: 16px 22px; font-size: 15px; font-weight: 600; font-family: inherit;
+  color: var(--txt2); background: none; border: none;
+  border-bottom: 3px solid transparent; cursor: pointer;
+  transition: color .15s, border-color .15s; white-space: nowrap; margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--txt); }
+.tab-btn.active-cavero { color: var(--blue);  border-bottom-color: var(--blue); }
+.tab-btn.active-ursula { color: var(--green); border-bottom-color: var(--green); }
+.tab-btn.active-erp    { color: var(--txt);   border-bottom-color: var(--txt); }
+/* PANELS */
+.tab-panel { display: none; padding: 24px; max-width: 1280px; margin: 0 auto; }
+.tab-panel.active { display: block; }
+/* MONTH BANNER */
+.month-banner {
+  border-radius: var(--r-lg); padding: 20px 28px; margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+}
+.month-banner.cavero { background: var(--blue-lt);  border: 1px solid var(--blue-md); }
+.month-banner.ursula { background: var(--green-lt); border: 1px solid var(--green-md); }
+.banner-left h2   { font-size: 22px; font-weight: 700; }
+.banner-left .period { font-size: 14px; color: var(--txt2); margin-top: 3px; }
+.banner-right     { display: flex; gap: 24px; }
+.banner-stat      { text-align: center; }
+.bs-num { font-size: 28px; font-weight: 700; line-height: 1; }
+.bs-lbl { font-size: 12px; color: var(--txt2); margin-top: 3px; font-weight: 500; text-transform: uppercase; letter-spacing:.04em; }
+/* SECTION CARD */
+.section-card {
+  background: var(--srf); border: 1px solid var(--bdr);
+  border-radius: var(--r-md); padding: 22px 26px;
+  margin-bottom: 20px; box-shadow: var(--shd);
+}
+.section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px; flex-wrap: wrap; gap: 8px;
+}
+.section-title {
+  font-size: 12px; font-weight: 700; letter-spacing:.07em;
+  text-transform: uppercase; color: var(--txt3);
+}
+.section-badge { font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
+.section-badge.green  { background: #e8fbf3; color: #0a6641; }
+.section-badge.red    { background: #fdeee9; color: #8b1f0f; }
+.section-badge.blue   { background: var(--blue-lt);  color: #0f3a9a; }
+.section-badge.ugreen { background: var(--green-lt); color: #0a6641; }
+.section-badge.gray   { background: var(--srf2); color: var(--txt2); }
+/* KPI GRID */
+.kpi-grid { display: grid; gap: 14px; margin-bottom: 18px; }
+.kpi-g4 { grid-template-columns: repeat(4,1fr); }
+.kpi-g3 { grid-template-columns: repeat(3,1fr); }
+.kpi-g2 { grid-template-columns: repeat(2,1fr); }
+@media (max-width: 900px) { .kpi-g4 { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 600px) { .kpi-g4,.kpi-g3,.kpi-g2 { grid-template-columns: 1fr; } }
+.kpi-card {
+  background: var(--srf2); border: 1px solid var(--bdr);
+  border-radius: var(--r-sm); padding: 16px 18px;
+  position: relative; overflow: hidden;
+}
+.kpi-card::before {
+  content:''; position: absolute; top:0; left:0; right:0;
+  height: 3px; border-radius: var(--r-sm) var(--r-sm) 0 0;
+}
+.kpi-card.accent-blue::before  { background: var(--blue); }
+.kpi-card.accent-green::before { background: var(--green); }
+.kpi-card.accent-red::before   { background: var(--red); }
+.kpi-card.accent-amber::before { background: var(--amber); }
+.kpi-card.accent-gray::before  { background: var(--bdr2); }
+.kpi-label {
+  font-size: 12px; font-weight: 600; color: var(--txt2);
+  text-transform: uppercase; letter-spacing:.05em; margin-bottom: 8px;
+}
+.kpi-value { font-size: 26px; font-weight: 700; line-height: 1.1; color: var(--txt); }
+.kpi-value.blue  { color: var(--blue); }
+.kpi-value.green { color: var(--green); }
+.kpi-value.red   { color: var(--red); }
+.kpi-value.amber { color: var(--amber); }
+.kpi-value.muted { color: var(--txt2); }
+.kpi-sub { font-size: 13px; color: var(--txt3); margin-top: 4px; }
+.kpi-cmp { font-size: 13px; margin-top: 5px; font-weight: 500; }
+.kpi-cmp.pos { color: var(--green); }
+.kpi-cmp.neg { color: var(--red); }
+.kpi-cmp.neu { color: var(--txt3); }
+/* PROGRESS */
+.progress-section { margin-top: 4px; }
+.progress-meta {
+  display: flex; justify-content: space-between;
+  font-size: 14px; color: var(--txt2); margin-bottom: 8px; font-weight: 500;
+}
+.progress-track {
+  height: 12px; background: var(--srf2);
+  border: 1px solid var(--bdr); border-radius: 6px; overflow: hidden;
+}
+.progress-fill { height: 100%; border-radius: 6px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+/* DIVIDER */
+.divider { border: none; border-top: 1px solid var(--bdr); margin: 20px 0; }
+.segment-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing:.07em; color: var(--txt3); margin-bottom: 12px;
+}
+/* CHARTS */
+.chart-legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 14px; color: var(--txt2); margin-bottom: 14px; }
+.leg { display: flex; align-items: center; gap: 7px; }
+.leg-bar  { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+.leg-line { width: 22px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+.leg-dash { width: 22px; border-top: 3px dashed; flex-shrink: 0; }
+.chart-wrap { position: relative; }
+/* ROLLING STRIP */
+.rolling-strip { display: flex; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.rolling-kpi {
+  background: var(--srf2); border: 1px solid var(--bdr);
+  border-radius: var(--r-sm); padding: 12px 18px; min-width: 200px;
+}
+.rk-lbl { font-size: 12px; color: var(--txt2); text-transform: uppercase; letter-spacing:.05em; font-weight: 600; margin-bottom: 4px; }
+.rk-val { font-size: 22px; font-weight: 700; }
+/* ANNUAL STRIP */
+.annual-strip { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
+@media (max-width: 700px) { .annual-strip { grid-template-columns: repeat(2,1fr); } }
+.annual-kpi { background: var(--srf2); border: 1px solid var(--bdr); border-radius: var(--r-sm); padding: 12px 16px; }
+.ak-year  { font-size: 12px; font-weight: 700; color: var(--txt3); text-transform: uppercase; letter-spacing:.05em; margin-bottom: 4px; }
+.ak-val   { font-size: 20px; font-weight: 700; }
+.ak-delta { font-size: 12px; margin-top: 2px; }
+/* BONOS TABLE */
+.tarj-table-wrap { overflow-x: auto; }
+.tarj-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.tarj-table th {
+  font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing:.05em; color: var(--txt2); padding: 10px 14px;
+  border-bottom: 2px solid var(--bdr); text-align: left; background: var(--srf2);
+}
+.tarj-table td { padding: 12px 14px; border-bottom: 1px solid var(--bdr); color: var(--txt); }
+.tarj-table tr:last-child td { border-bottom: none; }
+.tarj-table .current-month { background: #fffdf5; font-weight: 600; }
+.tarj-table .empty-cell { color: var(--txt3); }
+.cmp-pos { color: var(--green); font-weight: 600; }
+.cmp-neg { color: var(--red);   font-weight: 600; }
+.cmp-neu { color: var(--txt3); }
+/* ERP */
+.erp-wrap { max-width: 860px; }
+.erp-intro {
+  background: #eef3fd; border: 1px solid #c5d7f8;
+  border-radius: var(--r-sm); padding: 14px 18px;
+  font-size: 14px; color: #1a3a8f; margin-bottom: 20px; line-height: 1.6;
+}
+.erp-intro strong { font-weight: 700; }
+.field-label {
+  font-size: 13px; font-weight: 600; color: var(--txt2);
+  margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing:.04em;
+}
+.erp-textarea {
+  width: 100%; height: 220px; font-family: 'Courier New', monospace; font-size: 13px;
+  border: 1px solid var(--bdr2); border-radius: var(--r-sm);
+  padding: 14px; background: var(--srf2); color: var(--txt);
+  resize: vertical; outline: none; transition: border-color .15s; margin-bottom: 14px;
+}
+.erp-textarea:focus { border-color: var(--blue); }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.btn {
+  padding: 11px 22px; font-size: 15px; font-weight: 600; font-family: inherit;
+  border-radius: var(--r-sm); cursor: pointer;
+  transition: opacity .15s, transform .1s; border: none; white-space: nowrap;
+}
+.btn:hover { opacity: .88; } .btn:active { transform: scale(.98); }
+.btn-primary   { background: var(--blue);  color: #fff; }
+.btn-secondary { background: var(--srf2);  color: var(--txt); border: 1px solid var(--bdr2); }
+.btn-success   { background: var(--green); color: #fff; }
+.btn-danger    { background: var(--srf2);  color: var(--red); border: 1px solid #f5c2b0; }
+.erp-alert {
+  padding: 12px 16px; border-radius: var(--r-sm); font-size: 14px;
+  margin-bottom: 14px; display: flex; align-items: flex-start; gap: 10px;
+}
+.erp-alert.success { background: #e8fbf3; border: 1px solid #a7f0d0; color: #0a6641; }
+.erp-alert.error   { background: #fdeee9; border: 1px solid #f5c2b0; color: #8b1f0f; }
+.erp-alert.info    { background: var(--blue-lt); border: 1px solid var(--blue-md); color: #1a3a8f; }
+.erp-alert.warning { background: #fef3e0; border: 1px solid #fad08a; color: #7a4a05; }
+.erp-preview { background: var(--srf2); border: 1px solid var(--bdr); border-radius: var(--r-sm); margin-bottom: 20px; }
+.erp-prev-head {
+  padding: 12px 18px; border-bottom: 1px solid var(--bdr);
+  font-size: 13px; font-weight: 700; color: var(--txt2);
+  text-transform: uppercase; letter-spacing:.05em;
+}
+.erp-prev-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 11px 18px; border-bottom: 1px solid var(--bdr); font-size: 15px;
+}
+.erp-prev-row:last-child { border-bottom: none; }
+.erp-prev-lbl { color: var(--txt2); }
+.erp-prev-val { font-weight: 700; }
+.erp-prev-val.ok   { color: var(--green); }
+.erp-prev-val.null { color: var(--txt3); }
+.tarj-manual-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 14px; }
+@media (max-width: 700px) { .tarj-manual-grid { grid-template-columns: 1fr; } }
+.tarj-person-block { background: var(--srf2); border: 1px solid var(--bdr); border-radius: var(--r-sm); padding: 16px 20px; }
+.tarj-person-block h4 { font-size: 15px; font-weight: 700; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--bdr); }
+.tarj-person-block h4.cavero { color: var(--blue); }
+.tarj-person-block h4.ursula { color: var(--green); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.field-group { display: flex; flex-direction: column; gap: 5px; }
+.field-input {
+  padding: 9px 12px; font-size: 15px; font-family: inherit;
+  border: 1px solid var(--bdr2); border-radius: var(--r-sm);
+  background: var(--srf); color: var(--txt); outline: none; transition: border-color .15s;
+}
+.field-input:focus { border-color: var(--blue); }
+.field-select {
+  padding: 9px 12px; font-size: 15px; font-family: inherit;
+  border: 1px solid var(--bdr2); border-radius: var(--r-sm);
+  background: var(--srf); color: var(--txt); outline: none; cursor: pointer; width: 100%;
+}
+/* UTILITY */
+.hidden { display: none !important; }
+.flex-row { display: flex; align-items: center; gap: 10px; }
+.mt-12 { margin-top: 12px; } .mt-16 { margin-top: 16px; }
+.color-green { color: var(--green); }
+.color-red   { color: var(--red); }
+.color-amber { color: var(--amber); }
+.color-blue  { color: var(--blue); }
+.color-muted { color: var(--txt2); }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-left">
+    <div class="app-logo">H</div>
+    <div>
+      <div class="app-title">Hipopótamo Pinturas y Decoración S.L.</div>
+      <div class="app-subtitle">Cuadro de mando comercial · Zaragoza</div>
+    </div>
+  </div>
+  <div class="date-badge">
+    <div class="db-lbl">Datos a fecha</div>
+    <div class="db-date" id="header-date">—</div>
+  </div>
+</header>
+
+<nav class="tab-bar">
+  <button class="tab-btn" id="tab-cavero" onclick="showTab('cavero')">Antonio Cavero</button>
+  <button class="tab-btn" id="tab-ursula" onclick="showTab('ursula')">Úrsula Moreno</button>
+  <button class="tab-btn" id="tab-erp"    onclick="showTab('erp')">Cargar datos ERP</button>
+</nav>
+
+<!-- Banner de sincronización automática (se muestra solo si se detecta data.json) -->
+<div id="sync-banner" class="hidden" style="background:#e8fbf3;border-bottom:1px solid #a7f0d0;padding:8px 24px;font-size:13px;color:#0a6641;font-weight:500;"></div>
+
+<!-- ═══ PANEL CAVERO ═══ -->
+<div id="panel-cavero" class="tab-panel">
+  <div class="month-banner cavero">
+    <div class="banner-left">
+      <h2 class="color-blue" id="banner-title-cavero">—</h2>
+      <div class="period" id="banner-period-cavero">—</div>
+    </div>
+    <div class="banner-right">
+      <div class="banner-stat"><div class="bs-num color-blue" id="banner-elapsed-cavero">—</div><div class="bs-lbl">días trans.</div></div>
+      <div class="banner-stat"><div class="bs-num color-blue" id="banner-total-cavero">—</div><div class="bs-lbl">días totales</div></div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-head"><span class="section-title">Mes actual</span><span class="section-badge" id="dev-badge-cavero">—</span></div>
+    <div class="kpi-grid kpi-g4">
+      <div class="kpi-card accent-blue">
+        <div class="kpi-label">Venta real</div>
+        <div class="kpi-value blue" id="kpi-real-cavero">—</div>
+        <div class="kpi-sub">Grupo profesionales</div>
+      </div>
+      <div class="kpi-card accent-amber">
+        <div class="kpi-label">Proyección mes</div>
+        <div class="kpi-value amber" id="kpi-proy-cavero">—</div>
+        <div class="kpi-sub">real ÷ días × total días</div>
+      </div>
+      <div class="kpi-card accent-gray">
+        <div class="kpi-label">Objetivo 2026</div>
+        <div class="kpi-value" id="kpi-obj-cavero">—</div>
+        <div class="kpi-sub">Presupuesto mensual</div>
+      </div>
+      <div class="kpi-card" id="kpi-dev-card-cavero">
+        <div class="kpi-label">Desviación vs objetivo</div>
+        <div class="kpi-value" id="kpi-dev-cavero">—</div>
+        <div class="kpi-sub" id="kpi-devproy-cavero">—</div>
+      </div>
+    </div>
+    <div class="progress-section">
+      <div class="progress-meta"><span>Progreso sobre objetivo</span><span id="prog-pct-cavero" style="font-weight:700;">0%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="prog-fill-cavero" style="width:0%;background:var(--blue);"></div></div>
+    </div>
+
+    <hr class="divider">
+    <div class="segment-title">Detalle por segmento (datos ERP)</div>
+    <div class="kpi-grid kpi-g2">
+      <div class="kpi-card accent-blue"><div class="kpi-label">Industria</div><div class="kpi-value blue" id="kpi-industria">—</div><div class="kpi-sub">Venta a industria</div></div>
+      <div class="kpi-card accent-blue"><div class="kpi-label">Distribuidores</div><div class="kpi-value blue" id="kpi-distribuidores">—</div><div class="kpi-sub">Venta a distribuidores</div></div>
+    </div>
+
+    <hr class="divider">
+    <div class="segment-title">Bonos — mes actual</div>
+    <div class="kpi-grid kpi-g2">
+      <div class="kpi-card accent-blue">
+        <div class="kpi-label">Alta bonos</div>
+        <div class="kpi-value blue" id="kpi-bonos-altas-cavero">—</div>
+        <div class="kpi-cmp neu" id="kpi-bonos-altas-cmp-cavero">vs año ant.: —</div>
+      </div>
+      <div class="kpi-card accent-blue">
+        <div class="kpi-label">Consumo bono</div>
+        <div class="kpi-value blue" id="kpi-bonos-consumo-cavero">—</div>
+        <div class="kpi-cmp neu" id="kpi-bonos-consumo-cmp-cavero">vs año ant.: —</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-head"><span class="section-title">Evolución mensual 2026</span></div>
+    <div class="chart-legend">
+      <div class="leg"><div class="leg-bar" style="background:#1a56e8;"></div><span>Venta real</span></div>
+      <div class="leg"><div class="leg-dash" style="border-color:#c47a0a;"></div><span>Objetivo</span></div>
+      <div class="leg"><div class="leg-bar" style="background:rgba(13,159,110,.5);"></div><span>Proyección mes actual</span></div>
+    </div>
+    <div class="chart-wrap" style="height:260px;"><canvas id="chart-2026-cavero"></canvas></div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-head"><span class="section-title">Rolling 12 meses</span></div>
+    <div class="rolling-strip">
+      <div class="rolling-kpi"><div class="rk-lbl">Rolling actual</div><div class="rk-val color-blue" id="rolling-actual-cavero">—</div></div>
+      <div class="rolling-kpi"><div class="rk-lbl">Mismo mes año anterior</div><div class="rk-val" id="rolling-prev-cavero">—</div></div>
+      <div class="rolling-kpi"><div class="rk-lbl">Variación interanual</div><div class="rk-val" id="rolling-delta-cavero">—</div></div>
+    </div>
+    <div class="chart-legend"><div class="leg"><div class="leg-line" style="background:#1a56e8;"></div><span>Rolling 12 meses (profesionales)</span></div></div>
+    <div class="chart-wrap" style="height:220px;"><canvas id="chart-rolling-cavero"></canvas></div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-head"><span class="section-title">Histórico anual desde 2023</span></div>
+    <div class="annual-strip" id="annual-strip-cavero"></div>
+    <div class="chart-legend">
+      <div class="leg"><div class="leg-line" style="background:#b0b0b0;"></div><span>2023</span></div>
+      <div class="leg"><div class="leg-line" style="background:#85b7eb;"></div><span>2024</span></div>
+      <div class="leg"><div class="leg-line" style="background:#4a7ee0;"></div><span>2025</span></div>
+      <div class="leg"><div class="leg-line" style="background:#d93025;"></div><span>2026</span></div>
+    </div>
+    <div class="chart-wrap" style="height:260px;"><canvas id="chart-annual-cavero"></canvas></div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-head"><span class="section-title">Bonos — histórico 2026</span></div>
+    <div class="tarj-table-wrap">
+      <table class="tarj-table">
+        <thead><tr><th>Mes comercial</th><th>Alta bonos</th><th>vs año ant.</th><th>Consumo bono</th><th>vs año ant.</th></tr></thead>
+        <tbody id="tarj-tbody-cavero"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANEL ÚRSULA ═══ -->
+<div id="panel-ursula" class="tab-panel">
+  <div class="month-banner ursula">
+    <div class="banner-left">
+      <h2 class="color-green" id="banner-title-ursula">—</h2>
+      <div class="period" id="banner-period-ursula">—</div>
+    </div>
+    <div class="banner-right">
+      <div class="banner-stat"><div class="bs-num color-green" id="banner-elapsed-ursula">—</div><div class="bs-lbl">días trans.</div></div>
+      <div class="banner-stat"><div class="bs-num color-green" id="banner-total-ursula">—</div><div class="bs-lbl">días totales</div></div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-head"><span class="section-title">Mes actual</span><span class="section-badge" id="dev-badge-ursula">—</span></div>
+    <div class="kpi-grid kpi-g4">
+      <div class="kpi-card accent-green">
+        <div class="kpi-label">Venta real</div>
+        <div class="kpi-value green" id="kpi-real-ursula">—</div>
+        <div class="kpi-sub">Total vendedor 61</div>
+      </div>
+      <div class="kpi-card accent-amber">
+        <div class="kpi-label">Proyección mes</div>
+        <div class="kpi-value amber" id="kpi-proy-ursula">—</div>
+        <div class="kpi-sub">real ÷ días × total días</div>
+      </div>
+      <div class="kpi-card accent-gray">
+        <div class="kpi-label">Objetivo 2026</div>
+        <div class="kpi-value" id="kpi-obj-ursula">—</div>
+        <div class="kpi-sub">Presupuesto mensual</div>
+      </div>
+      <div class="kpi-card" id="kpi-dev-card-ursula">
+        <div class="kpi-label">Desviación vs objetivo</div>
+        <div class="kpi-value" id="kpi-dev-ursula">—</div>
+        <div class="kpi-sub" id="kpi-devproy-ursula">—</div>
+      </div>
+    </div>
+    <div class="progress-section">
+      <div class="progress-meta"><span>Progreso sobre objetivo</span><span id="prog-pct-ursula" style="font-weight:700;">0%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="prog-fill-ursula" style="width:0%;background:var(--green);"></div></div>
+    </div>
+
+    <hr class="divider">
+    <div class="segment-title">Bonos — mes actual</div>
+    <div class="kpi-grid kpi-g2">
+      <div class="kpi-card accent-green">
+        <div class="kpi-label">Alta bonos</div>
+        <div class="kpi-value green" id="kpi-bonos-altas-ursula">—</div>
+        <div class="kpi-cmp neu" id="kpi-bonos-altas-cmp-ursula">vs año ant.: —</div>
+      </div>
+      <div class="kpi-card accent-green">
+        <div class="kpi-label">Consumo bono</div>
+        <div class="kpi-value green" id="kpi-bonos-consumo-ursula">—</div>
+        <div class="kpi-cmp neu" id="kpi-bonos-consumo-cmp-ursula">vs año ant.: —</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-head"><span class="section-title">Evolución mensual 2026</span></div>
+    <div class="chart-legend">
+      <div class="leg"><div class="leg-bar" style="background:#0d9f6e;"></div><span>Venta real</span></div>
+      <div class="leg"><div class="leg-dash" style="border-color:#c47a0a;"></div><span>Objetivo</span></div>
+      <div class="leg"><div class="leg-bar" style="background:rgba(13,159,110,.35);"></div><span>Proyección mes actual</span></div>
+    </div>
+    <div class="chart-wrap" style="height:260px;"><canvas id="chart-2026-ursula"></canvas></div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-head"><span class="section-title">Rolling 12 meses</span></div>
+    <div class="rolling-strip">
+      <div class="rolling-kpi"><div class="rk-lbl">Rolling actual</div><div class="rk-val color-green" id="rolling-actual-ursula">—</div></div>
+      <div class="rolling-kpi"><div class="rk-lbl">Mismo mes año anterior</div><div class="rk-val" id="rolling-prev-ursula">—</div></div>
+      <div class="rolling-kpi"><div class="rk-lbl">Variación interanual</div><div class="rk-val" id="rolling-delta-ursula">—</div></div>
+    </div>
+    <div class="chart-legend"><div class="leg"><div class="leg-line" style="background:#0d9f6e;"></div><span>Rolling 12 meses</span></div></div>
+    <div class="chart-wrap" style="height:220px;"><canvas id="chart-rolling-ursula"></canvas></div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-head"><span class="section-title">Histórico anual desde 2023</span></div>
+    <div class="annual-strip" id="annual-strip-ursula"></div>
+    <div class="chart-legend">
+      <div class="leg"><div class="leg-line" style="background:#b0b0b0;"></div><span>2023</span></div>
+      <div class="leg"><div class="leg-line" style="background:#6ec9a0;"></div><span>2024</span></div>
+      <div class="leg"><div class="leg-line" style="background:#2ea87a;"></div><span>2025</span></div>
+      <div class="leg"><div class="leg-line" style="background:#d93025;"></div><span>2026</span></div>
+    </div>
+    <div class="chart-wrap" style="height:260px;"><canvas id="chart-annual-ursula"></canvas></div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-head"><span class="section-title">Bonos — histórico 2026</span></div>
+    <div class="tarj-table-wrap">
+      <table class="tarj-table">
+        <thead><tr><th>Mes comercial</th><th>Alta bonos</th><th>vs año ant.</th><th>Consumo bono</th><th>vs año ant.</th></tr></thead>
+        <tbody id="tarj-tbody-ursula"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANEL ERP ═══ -->
+<div id="panel-erp" class="tab-panel">
+  <div class="erp-wrap">
+
+    <!-- ── SELECTOR MES ACTIVO ── -->
+    <div style="background:var(--srf);border:1px solid var(--bdr);border-radius:var(--r-md);padding:20px 24px;margin-bottom:24px;box-shadow:var(--shd);">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--txt3);margin-bottom:14px;">Mes visualizado en el cuadro</div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div style="display:flex;flex-direction:column;gap:5px;min-width:220px;">
+          <label class="field-label" for="active-month-sel">Mes comercial activo</label>
+          <select class="field-select" id="active-month-sel" onchange="changeActiveMonth(this.value)" style="font-size:16px;font-weight:600;"></select>
+        </div>
+        <button class="btn btn-secondary" onclick="resetToCurrentMonth()" style="margin-top:20px;">↺ Volver al mes actual</button>
+        <div style="margin-top:20px;padding:10px 16px;background:var(--srf2);border:1px solid var(--bdr);border-radius:var(--r-sm);font-size:14px;color:var(--txt2);">
+          Mes en curso: <strong id="current-month-label" style="color:var(--txt);">—</strong>
+        </div>
+      </div>
+      <div style="margin-top:12px;font-size:13px;color:var(--txt3);">
+        Cambiar este selector actualiza inmediatamente los KPIs, barras de progreso y datos del mes actual en ambas pestañas de comercial. Los gráficos históricos no cambian.
+      </div>
+    </div>
+
+    <div class="erp-intro">
+      <strong>Instrucciones:</strong> Abre <em>Ventas por caja.xlsx</em> → hoja <em>VENTAS</em>.
+      Selecciona todo (Ctrl+A), cópialo (Ctrl+C) y pégalo abajo.<br>
+      El sistema detecta el mes por la línea <em>"Fecha hasta"</em> y extrae:
+      Cavero (vendedor 26 · PROFESIONALES + INDUSTRIA + DISTRIBUIDORES)
+      y Úrsula (fila "Total vendedor 61" · columna D).
+      La fecha que aparece en la cabecera del cuadro se actualizará con la fecha del archivo.
+    </div>
+
+    <label class="field-label">Pegar contenido del Excel (texto tabulado)</label>
+    <textarea class="erp-textarea" id="erp-textarea" placeholder="Pega aquí el contenido copiado del Excel…"></textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary"   onclick="parseERPData()">Analizar datos</button>
+      <button class="btn btn-secondary" onclick="clearERP()">Limpiar</button>
+    </div>
+    <div id="erp-alert-wrap"></div>
+    <div id="erp-preview" class="hidden"></div>
+    <div id="erp-save-row" class="btn-row hidden">
+      <button class="btn btn-success" onclick="saveERPData()">Guardar datos en el cuadro</button>
+      <button class="btn btn-danger"  onclick="clearERP()">Cancelar</button>
+    </div>
+
+    <hr class="divider" style="margin:28px 0;">
+    <div class="section-title" style="margin-bottom:14px;">Bonos — introducción manual</div>
+    <div class="erp-alert info">Si los datos de bonos no aparecen en el Excel, introdúcelos aquí manualmente.</div>
+    <div class="flex-row" style="margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+      <div class="field-group" style="min-width:200px;">
+        <label class="field-label">Mes comercial</label>
+        <select class="field-select" id="tarj-month-sel"></select>
+      </div>
+    </div>
+    <div class="tarj-manual-grid">
+      <div class="tarj-person-block">
+        <h4 class="cavero">Antonio Cavero</h4>
+        <div class="field-row">
+          <div class="field-group"><label class="field-label">Alta bonos</label><input class="field-input" type="number" id="tarj-c-altas" placeholder="0" min="0"></div>
+          <div class="field-group"><label class="field-label">Consumo bono (€)</label><input class="field-input" type="number" id="tarj-c-consumo" placeholder="0.00" min="0" step="0.01"></div>
+        </div>
+      </div>
+      <div class="tarj-person-block">
+        <h4 class="ursula">Úrsula Moreno</h4>
+        <div class="field-row">
+          <div class="field-group"><label class="field-label">Alta bonos</label><input class="field-input" type="number" id="tarj-u-altas" placeholder="0" min="0"></div>
+          <div class="field-group"><label class="field-label">Consumo bono (€)</label><input class="field-input" type="number" id="tarj-u-consumo" placeholder="0.00" min="0" step="0.01"></div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row mt-16"><button class="btn btn-primary" onclick="saveTarjetaManual()">Guardar bonos</button></div>
+    <div id="tarj-save-alert" class="hidden" style="margin-top:10px;"></div>
+
+    <hr class="divider" style="margin:28px 0;">
+
+    <!-- ── PRESUPUESTOS ── -->
+    <div class="section-title" style="margin-bottom:6px;">Presupuestos mensuales 2026</div>
+    <p style="font-size:14px;color:var(--txt2);margin-bottom:16px;">
+      Edita los objetivos mensuales de cada comercial. Los cambios se guardan en el navegador
+      y tienen prioridad sobre los valores por defecto.
+    </p>
+
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:15px;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:10px 14px;border-bottom:2px solid var(--bdr);background:var(--srf2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--txt2);">Mes</th>
+            <th style="text-align:right;padding:10px 14px;border-bottom:2px solid var(--bdr);background:var(--srf2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--blue);">Antonio Cavero (€)</th>
+            <th style="text-align:right;padding:10px 14px;border-bottom:2px solid var(--bdr);background:var(--srf2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--green);">Úrsula Moreno (€)</th>
+          </tr>
+        </thead>
+        <tbody id="budget-tbody"></tbody>
+        <tfoot>
+          <tr>
+            <td style="padding:12px 14px;font-weight:700;font-size:15px;border-top:2px solid var(--bdr);">Total anual</td>
+            <td style="padding:12px 14px;text-align:right;font-weight:700;font-size:15px;color:var(--blue);border-top:2px solid var(--bdr);" id="budget-total-cavero">—</td>
+            <td style="padding:12px 14px;text-align:right;font-weight:700;font-size:15px;color:var(--green);border-top:2px solid var(--bdr);" id="budget-total-ursula">—</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="btn-row mt-16">
+      <button class="btn btn-primary" onclick="saveBudgets()">Guardar presupuestos</button>
+      <button class="btn btn-secondary" onclick="resetBudgets()">Restaurar valores por defecto</button>
+    </div>
+    <div id="budget-alert" class="hidden" style="margin-top:10px;"></div>
+
+    <hr class="divider" style="margin:28px 0;">
+    <div class="section-title" style="margin-bottom:14px;">Gestión de datos guardados</div>
+    <div class="erp-alert warning">Los datos hardcodeados (histórico 2023–2025 y Ene–Mar 2026) nunca se borran. Solo se eliminan los datos importados vía ERP o bonos manual.</div>
+    <div class="btn-row mt-12"><button class="btn btn-danger" onclick="resetLS()">Borrar datos importados</button></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const MONTHS_ES    = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const LS_KEY = 'hipopotamo_v2';
+
+const HC = {
+  cavero: {
+    budget2026: [63061,77248,63061,77248,63061,77248,77248,63061,77248,63061,77248,63061],
+    monthly: {
+      2023:[58083,66396,82899,69020,80160,75401,89730,62039,71003,78199,82111,79914],
+      2024:[67771,71061,80457,98811,85229,80531,72108,52790,89149,68877,69733,71648],
+      2025:[40118,65146,68093,64989,69148,93969,90198,68654,97134,59863,74993,93577],
+      2026:[41824,72571,83410,null,null,null,null,null,null,null,null,null]
+    }
+  },
+  ursula: {
+    budget2026: [31500,26000,31500,26000,31500,26000,26000,31500,26000,31500,26000,31500],
+    monthly: {
+      2023:[6452,15077,11375,12963,15851,17379,20528,12118,15683,12176,22745,14595],
+      2024:[15658,17009,17277,16423,17628,22996,39689,12845,25957,19027,22206,22696],
+      2025:[17499,15793,23216,27718,20708,24316,36622,20820,36654,25591,27938,20828],
+      2026:[16856,20750,32518,null,null,null,null,null,null,null,null,null]
+    }
+  }
+};
+
+const FESTIVOS = [
+  '2026-01-01','2026-01-06','2026-03-05','2026-04-02',
+  '2026-04-03','2026-04-23','2026-05-01','2026-10-12',
+  '2026-11-01','2026-12-06','2026-12-08','2026-12-25'
+].map(s=>{ const d=new Date(s+'T12:00:00'); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); });
+
+function isFest(d){ return FESTIVOS.includes(d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()); }
+function isWork(d){ const w=d.getDay(); return w!==0&&w!==6&&!isFest(d); }
+function countWork(from,to){
+  let n=0; const d=new Date(from); d.setHours(12,0,0,0);
+  const e=new Date(to); e.setHours(12,0,0,0);
+  while(d<=e){if(isWork(d))n++;d.setDate(d.getDate()+1);}
+  return n;
+}
+function getComercialMonth(today){
+  const day=today.getDate(); let year=today.getFullYear(), month=today.getMonth();
+  if(day>=26){month+=1;if(month>11){month=0;year++;}}
+  const pY=month===0?year-1:year, pM=month===0?11:month-1;
+  const start=new Date(pY,pM,26,12,0,0), end=new Date(year,month,25,12,0,0);
+  const totalDays=countWork(start,end);
+  const tn=new Date(today); tn.setHours(12,0,0,0);
+  const elapsedDays=tn<start?0:tn>end?totalDays:countWork(start,tn);
+  return{year,month,start,end,totalDays,elapsedDays};
+}
+
+function fmtEur(v,dec=0){
+  if(v===null||v===undefined||isNaN(v))return'—';
+  return new Intl.NumberFormat('es-ES',{minimumFractionDigits:dec,maximumFractionDigits:dec}).format(Math.round(v))+' €';
+}
+function fmtNum(v){ if(v===null||v===undefined||isNaN(v))return'—'; return new Intl.NumberFormat('es-ES').format(v); }
+function dateKey(y,m){ return`${y}-${String(m+1).padStart(2,'0')}`; }
+function deviationInfo(real,obj){
+  if(real===null||real===undefined||obj===null)return{text:'—',cls:'gray',sign:0};
+  const d=real-obj;
+  if(d>=0)return{text:`Superado en +${fmtEur(d)}`,cls:'green',sign:1};
+  return{text:`Le queda ${fmtEur(Math.abs(d))}`,cls:'red',sign:-1};
+}
+function proy(real,elapsed,total){ if(!real||!elapsed||!total)return null; return(real/elapsed)*total; }
+
+function loadLS(){ try{return JSON.parse(localStorage.getItem(LS_KEY)||'{}');}catch{return{};} }
+function saveLS(d){ localStorage.setItem(LS_KEY,JSON.stringify(d)); }
+
+/* ── CARGA AUTOMÁTICA DE data.json (generado por el script Python) ──
+   El HTML intenta leer data.json desde su misma carpeta cada vez que se abre.
+   Si lo encuentra, vuelca su contenido a localStorage (sin sobrescribir
+   presupuestos ni bonos editados manualmente) y refresca el cuadro.
+   Si no lo encuentra (apertura desde otro directorio o sin script),
+   funciona solo con localStorage como siempre.
+─────────────────────────────────────────────────────────────────── */
+async function tryLoadDataJson(){
+  try {
+    const resp = await fetch('./data.json?_=' + Date.now(), {cache:'no-store'});
+    if(!resp.ok) return false;
+    const remote = await resp.json();
+
+    // Merge remote into localStorage — HC always wins for hardcoded months
+    const ls = loadLS();
+
+    // ── ventas mensuales
+    for(const person of ['cavero','ursula']){
+      if(!remote[person]) continue;
+      ls[person] = ls[person] || {};
+
+      // monthly
+      if(remote[person].monthly){
+        ls[person].monthly = ls[person].monthly || {};
+        for(const [yr, arr] of Object.entries(remote[person].monthly)){
+          ls[person].monthly[yr] = ls[person].monthly[yr] || Array(12).fill(null);
+          arr.forEach((v,i)=>{
+            if(v !== null && v !== undefined){
+              // HC overrides remote for months it covers
+              const hcVal = HC[person]?.monthly?.[yr]?.[i];
+              if(hcVal === null || hcVal === undefined){
+                ls[person].monthly[yr][i] = v;
+              }
+            }
+          });
+        }
+      }
+
+      // industria / distribuidores (cavero only)
+      if(remote[person].industria){
+        ls[person].industria = {...(ls[person].industria||{}), ...remote[person].industria};
+      }
+      if(remote[person].distribuidores){
+        ls[person].distribuidores = {...(ls[person].distribuidores||{}), ...remote[person].distribuidores};
+      }
+    }
+
+    // lastLoadDate — sólo actualiza si la del json es más reciente
+    if(remote.lastLoadDate){
+      const remoteDate = new Date(remote.lastLoadDate);
+      const localDate  = ls.lastLoadDate ? new Date(ls.lastLoadDate) : null;
+      if(!localDate || remoteDate > localDate){
+        ls.lastLoadDate = remote.lastLoadDate;
+      }
+    }
+
+    saveLS(ls);
+    log_sync_banner(remote.lastLoadDate, remote.lastRunTs);
+    return true;
+
+  } catch(e) {
+    // data.json no existe o no es accesible → funcionamiento normal
+    return false;
+  }
+}
+
+function log_sync_banner(fechaHasta, runTs){
+  const el = document.getElementById('sync-banner');
+  if(!el) return;
+  const dh = fechaHasta ? new Date(fechaHasta).toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'}) : '—';
+  const dt = runTs ? new Date(runTs).toLocaleString('es-ES',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+  el.textContent = `✓ Datos cargados automáticamente · Fecha datos: ${dh} · Última sincronización: ${dt}`;
+  el.classList.remove('hidden');
+}
+
+function getMerged(){
+  const ls=loadLS();
+  // Budgets: LS overrides HC if present
+  const lsBudC = ls?.cavero?.budget2026;
+  const lsBudU = ls?.ursula?.budget2026;
+  const budC = lsBudC ? HC.cavero.budget2026.map((v,i)=>lsBudC[i]??v) : [...HC.cavero.budget2026];
+  const budU = lsBudU ? HC.ursula.budget2026.map((v,i)=>lsBudU[i]??v) : [...HC.ursula.budget2026];
+  const data={
+    cavero:{budget2026:budC,monthly:{},
+      industria:ls?.cavero?.industria||{},distribuidores:ls?.cavero?.distribuidores||{},
+      bonos:ls?.cavero?.bonos||{}},
+    ursula:{budget2026:budU,monthly:{},bonos:ls?.ursula?.bonos||{}}
+  };
+  for(const yr of[2023,2024,2025,2026]){
+    const hcC=HC.cavero.monthly[yr]||Array(12).fill(null);
+    const hcU=HC.ursula.monthly[yr]||Array(12).fill(null);
+    const lsC=ls?.cavero?.monthly?.[yr]; const lsU=ls?.ursula?.monthly?.[yr];
+    data.cavero.monthly[yr]=hcC.map((v,i)=>v!==null?v:(lsC?.[i]??null));
+    data.ursula.monthly[yr]=hcU.map((v,i)=>v!==null?v:(lsU?.[i]??null));
+  }
+  return data;
+}
+
+function rolling12(person,data){
+  const flat=[];
+  for(const yr of[2023,2024,2025,2026]){
+    const arr=data[person].monthly[yr]||[];
+    for(let m=0;m<12;m++) flat.push({year:yr,month:m,value:arr[m]??null});
+  }
+  const r=[];
+  for(let i=11;i<flat.length;i++){
+    const sl=flat.slice(i-11,i+1);
+    if(sl.every(s=>s.value!==null))
+      r.push({year:flat[i].year,month:flat[i].month,value:sl.reduce((a,b)=>a+b.value,0)});
+  }
+  return r;
+}
+
+const charts={};
+function dc(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
+const CC={
+  grid:'#e0ddd6',tick:'#5c5a55',
+  cavero:'#1a56e8',ursula:'#0d9f6e',obj:'#c47a0a',
+  proy:'rgba(13,159,110,0.45)',red:'#d93025',
+  annC:['#b0b0b0','#85b7eb','#4a7ee0','#d93025'],
+  annU:['#b0b0b0','#6ec9a0','#2ea87a','#d93025']
+};
+function scales(){
+  return{
+    x:{grid:{color:CC.grid},ticks:{color:CC.tick,font:{size:14,family:'Outfit, sans-serif'}}},
+    y:{grid:{color:CC.grid},ticks:{color:CC.tick,font:{size:13,family:'Outfit, sans-serif'},callback:v=>fmtEur(v)}}
+  };
+}
+
+function buildChart2026(person,data,cm){
+  const id='chart-2026-'+person; dc(id);
+  const canvas=document.getElementById(id); if(!canvas)return;
+  const budget=data[person].budget2026;
+  const real=data[person].monthly[2026]||Array(12).fill(null);
+  const proyArr=Array(12).fill(null);
+  const realCur=real[cm.month];
+  if(realCur!==null&&cm.elapsedDays>0) proyArr[cm.month]=proy(realCur,cm.elapsedDays,cm.totalDays);
+
+  charts[id]=new Chart(canvas.getContext('2d'),{
+    type:'bar',
+    data:{labels:MONTHS_SHORT,datasets:[
+      {label:'Venta real',data:real,backgroundColor:CC[person],borderRadius:4,order:2},
+      {label:'Proyección',data:proyArr,backgroundColor:CC.proy,borderRadius:4,order:3},
+      {label:'Objetivo',data:budget,type:'line',borderColor:CC.obj,borderWidth:2.5,
+       borderDash:[6,4],pointRadius:0,pointHoverRadius:5,tension:0,fill:false,order:1}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          mode:'index',intersect:false,
+          titleFont:{size:14,family:'Outfit, sans-serif'},bodyFont:{size:14,family:'Outfit, sans-serif'},
+          callbacks:{
+            title:items=>`${MONTHS_ES[items[0].dataIndex]} 2026`,
+            label:item=>{ const v=item.raw; if(v===null||v===undefined)return null; return` ${item.dataset.label}: ${fmtEur(v)}`; }
+          }
+        }
+      },
+      scales:scales()
+    }
+  });
+}
+
+function buildChartRolling(person,data){
+  const id='chart-rolling-'+person; dc(id);
+  const canvas=document.getElementById(id); if(!canvas)return;
+  const r=rolling12(person,data);
+  const labels=r.map(x=>`${MONTHS_SHORT[x.month]} ${x.year}`);
+  const vals=r.map(x=>x.value);
+  const last=r[r.length-1];
+  const prev=r.find(x=>x.year===last.year-1&&x.month===last.month);
+  document.getElementById('rolling-actual-'+person).textContent=fmtEur(last?.value);
+  if(prev){
+    const delta=last.value-prev.value;
+    document.getElementById('rolling-prev-'+person).textContent=fmtEur(prev.value);
+    const dEl=document.getElementById('rolling-delta-'+person);
+    dEl.textContent=(delta>=0?'+':'')+fmtEur(delta);
+    dEl.className='rk-val '+(delta>=0?'color-green':'color-red');
+  } else {
+    document.getElementById('rolling-prev-'+person).textContent='—';
+    document.getElementById('rolling-delta-'+person).textContent='—';
+  }
+  charts[id]=new Chart(canvas.getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[{
+      label:'Rolling 12m',data:vals,borderColor:CC[person],
+      backgroundColor:person==='cavero'?'rgba(26,86,232,0.08)':'rgba(13,159,110,0.08)',
+      borderWidth:2.5,pointRadius:3,pointHoverRadius:6,tension:0.3,fill:true
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        titleFont:{size:14,family:'Outfit, sans-serif'},bodyFont:{size:14,family:'Outfit, sans-serif'},
+        callbacks:{title:items=>labels[items[0].dataIndex],label:item=>` ${fmtEur(item.raw)}`}
+      }},
+      scales:scales()
+    }
+  });
+}
+
+function buildChartAnnual(person,data){
+  const id='chart-annual-'+person; dc(id);
+  const canvas=document.getElementById(id); if(!canvas)return;
+  const palette=person==='cavero'?CC.annC:CC.annU;
+  const datasets=[2023,2024,2025,2026].map((yr,i)=>({
+    label:String(yr),data:data[person].monthly[yr]||Array(12).fill(null),
+    borderColor:palette[i],backgroundColor:'transparent',
+    borderWidth:i===3?3:2,pointRadius:i===3?4:2,
+    pointHoverRadius:6,tension:0.3,spanGaps:false
+  }));
+  charts[id]=new Chart(canvas.getContext('2d'),{
+    type:'line',data:{labels:MONTHS_SHORT,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        titleFont:{size:14,family:'Outfit, sans-serif'},bodyFont:{size:14,family:'Outfit, sans-serif'},
+        callbacks:{
+          title:items=>MONTHS_ES[items[0].dataIndex],
+          label:item=>{const v=item.raw;if(v===null)return null;return` ${item.dataset.label}: ${fmtEur(v)}`;}
+        }
+      }},
+      scales:scales()
+    }
+  });
+  const strip=document.getElementById('annual-strip-'+person); if(!strip)return;
+  const totals=[2023,2024,2025,2026].map(yr=>(data[person].monthly[yr]||[]).reduce((a,v)=>a+(v??0),0));
+  strip.innerHTML=[2023,2024,2025,2026].map((yr,i)=>{
+    const isYTD=yr===2026;
+    const prev=totals[i-1];
+    const delta=i>0&&prev?((totals[i]-prev)/prev*100):null;
+    const dStr=delta!==null?`<div class="ak-delta ${delta>=0?'color-green':'color-red'}">${delta>=0?'+':''}${delta.toFixed(1)}% vs ${yr-1}</div>`:'';
+    return`<div class="annual-kpi"><div class="ak-year">${yr}${isYTD?' YTD':''}</div><div class="ak-val">${fmtEur(totals[i])}</div>${dStr}</div>`;
+  }).join('');
+}
+
+function cmpText(cur,prev,isMoney){
+  if(cur===null||cur===undefined)return{text:'vs año ant.: —',cls:'neu'};
+  if(prev===null||prev===undefined)return{text:'vs año ant.: sin datos',cls:'neu'};
+  const d=cur-prev;
+  const txt=isMoney?fmtEur(Math.abs(d)):Math.abs(d);
+  return{text:`vs año ant.: ${d>=0?'+':'−'}${txt}`,cls:d>=0?'pos':'neg'};
+}
+
+function renderPanel(person,data,cm){
+  const isC=person==='cavero'; const ac=isC?'blue':'green';
+  const mName=MONTHS_ES[cm.month];
+  document.getElementById('banner-title-'+person).textContent=
+    `${isC?'Antonio Cavero':'Úrsula Moreno'} — Mes comercial: ${mName} ${cm.year}`;
+  const fmt=d=>`${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+  document.getElementById('banner-period-'+person).textContent=
+    `Periodo: ${fmt(cm.start)} – ${fmt(cm.end)} · Vendedor ${isC?'26':'61'}`;
+  document.getElementById('banner-elapsed-'+person).textContent=cm.elapsedDays;
+  document.getElementById('banner-total-'+person).textContent=cm.totalDays;
+
+  const real=data[person].monthly[cm.year]?.[cm.month]??null;
+  const obj=data[person].budget2026[cm.month];
+  const pr=proy(real,cm.elapsedDays,cm.totalDays);
+
+  const rEl=document.getElementById('kpi-real-'+person);
+  rEl.textContent=real!==null?fmtEur(real):'—';
+  rEl.className=`kpi-value ${real!==null?ac:'muted'}`;
+  document.getElementById('kpi-proy-'+person).textContent=pr?fmtEur(pr):'—';
+  document.getElementById('kpi-obj-'+person).textContent=fmtEur(obj);
+
+  const dv=deviationInfo(real,obj);
+  const dvEl=document.getElementById('kpi-dev-'+person);
+  dvEl.textContent=real!==null?dv.text:'—';
+  dvEl.className=`kpi-value ${dv.cls||'muted'}`;
+  document.getElementById('kpi-dev-card-'+person).className=
+    'kpi-card accent-'+(dv.sign>0?'green':dv.sign<0?'red':'gray');
+
+  const subEl=document.getElementById('kpi-devproy-'+person);
+  if(pr){ const pd=deviationInfo(pr,obj); subEl.textContent='Proy.: '+pd.text; }
+  else subEl.textContent='Proyección no disponible';
+
+  const badge=document.getElementById('dev-badge-'+person);
+  if(real!==null){ badge.textContent=dv.text; badge.className=`section-badge ${dv.sign>0?(isC?'blue':'ugreen'):dv.sign<0?'red':'gray'}`; }
+  else { badge.textContent='Sin datos aún'; badge.className='section-badge gray'; }
+
+  const pct=obj>0&&real!==null?Math.min((real/obj)*100,100):0;
+  const fill=document.getElementById('prog-fill-'+person);
+  fill.style.width=pct+'%'; fill.style.background=pct>=100?'#0d9f6e':(isC?'#1a56e8':'#0d9f6e');
+  const pEl=document.getElementById('prog-pct-'+person);
+  pEl.textContent=Math.round(pct)+'%'; pEl.style.color=pct>=100?'#0d9f6e':(isC?'#1a56e8':'#0d9f6e');
+
+  if(isC){
+    const ik=dateKey(cm.year,cm.month);
+    document.getElementById('kpi-industria').textContent=fmtEur(data.cavero.industria?.[ik]??null);
+    document.getElementById('kpi-distribuidores').textContent=fmtEur(data.cavero.distribuidores?.[ik]??null);
+  }
+
+  // Bonos KPI + comparativa año anterior
+  const bKey=dateKey(cm.year,cm.month);
+  const bPrevKey=dateKey(cm.year-1,cm.month);
+  const b=data[person].bonos?.[bKey]||{};
+  const bP=data[person].bonos?.[bPrevKey]||{};
+
+  document.getElementById('kpi-bonos-altas-'+person).textContent=b.altas!=null?fmtNum(b.altas):'—';
+  document.getElementById('kpi-bonos-consumo-'+person).textContent=b.consumo!=null?fmtEur(b.consumo):'—';
+
+  const ca=cmpText(b.altas??null,bP.altas??null,false);
+  const cc=cmpText(b.consumo??null,bP.consumo??null,true);
+  const caEl=document.getElementById('kpi-bonos-altas-cmp-'+person);
+  const ccEl=document.getElementById('kpi-bonos-consumo-cmp-'+person);
+  caEl.textContent=ca.text; caEl.className='kpi-cmp '+ca.cls;
+  ccEl.textContent=cc.text; ccEl.className='kpi-cmp '+cc.cls;
+
+  renderBonosTable(person,data,cm);
+  buildChart2026(person,data,cm);
+  buildChartRolling(person,data);
+  buildChartAnnual(person,data);
+}
+
+function renderBonosTable(person,data,cm){
+  const tbody=document.getElementById('tarj-tbody-'+person); if(!tbody)return;
+  tbody.innerHTML='';
+  const curKey=dateKey(cm.year,cm.month);
+  for(let m=0;m<12;m++){
+    const key=dateKey(2026,m);
+    const prevKey=dateKey(2025,m);
+    const b=data[person].bonos?.[key]||{};
+    const bP=data[person].bonos?.[prevKey]||{};
+    const isCur=key===curKey;
+    const tr=document.createElement('tr');
+    if(isCur) tr.className='current-month';
+    const mLbl=MONTHS_ES[m]+' 2026'+(isCur?' ↩':'');
+    const aTxt=b.altas!=null?fmtNum(b.altas):'<span class="empty-cell">—</span>';
+    const cTxt=b.consumo!=null?fmtEur(b.consumo):'<span class="empty-cell">—</span>';
+    let aCmp='<span class="cmp-neu">—</span>';
+    if(b.altas!=null&&bP.altas!=null){ const d=b.altas-bP.altas; aCmp=`<span class="${d>=0?'cmp-pos':'cmp-neg'}">${d>=0?'+':''}${d}</span>`; }
+    let cCmp='<span class="cmp-neu">—</span>';
+    if(b.consumo!=null&&bP.consumo!=null){ const d=b.consumo-bP.consumo; cCmp=`<span class="${d>=0?'cmp-pos':'cmp-neg'}">${d>=0?'+':'−'}${fmtEur(Math.abs(d))}</span>`; }
+    tr.innerHTML=`<td>${mLbl}</td><td>${aTxt}</td><td>${aCmp}</td><td>${cTxt}</td><td>${cCmp}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+/* ── ERP PARSER ── */
+let parsedERP=null;
+function parseAmount(str){
+  if(!str)return null;
+  const s=String(str).trim().replace(/\s/g,'').replace(/\./g,'').replace(',','.');
+  const v=parseFloat(s); return isNaN(v)?null:v;
+}
+
+function parseERPData(){
+  const text=document.getElementById('erp-textarea').value.trim();
+  if(!text){showERPAlert('Pega el contenido del Excel antes de analizar.','warning');return;}
+  const lines=text.split('\n').map(l=>l.trimEnd());
+  document.getElementById('erp-alert-wrap').innerHTML='';
+  document.getElementById('erp-preview').classList.add('hidden');
+  document.getElementById('erp-save-row').classList.add('hidden');
+
+  let comercialMonth=null;
+  for(const line of lines){
+    const m=line.match(/Fecha\s+hasta[:\s]+(\d{1,2})\/(\d{1,2})\/(\d{2,4})/i);
+    if(m){
+      const day=parseInt(m[1]),mon=parseInt(m[2])-1,rawY=parseInt(m[3]);
+      const yr=rawY<100?2000+rawY:rawY;
+      let cmYear=yr,cmMonth=mon;
+      if(day>25){cmMonth=mon+1;if(cmMonth>11){cmMonth=0;cmYear++;}}
+      comercialMonth={year:cmYear,month:cmMonth,day,srcMon:mon,srcYear:yr};
+      break;
+    }
+  }
+  if(!comercialMonth){ showERPAlert('No se encontró "Fecha hasta". Copia la hoja completa.','error'); return; }
+
+  let colVend=-1,colGrupo=-1;
+  for(const line of lines){
+    const cols=line.split('\t').map(c=>c.trim().toLowerCase());
+    const iV=cols.findIndex(c=>c==='vendedor'||c==='vend');
+    if(iV>=0){colVend=iV;colGrupo=cols.findIndex(c=>c==='grupo'||c==='grup');break;}
+  }
+
+  let cavProf=0,cavInd=0,cavDist=0,ursulaTotal=null;
+  let cBA=null,cBC=null,uBA=null,uBC=null;
+
+  for(const line of lines){
+    const cols=line.split('\t').map(c=>c.trim());
+    if(cols.length<4)continue;
+    const rl=line.toLowerCase();
+    if(rl.includes('total vendedor 61')||(rl.includes('ursula')&&rl.includes('total'))){
+      const v=parseAmount(cols[3]);if(v!==null)ursulaTotal=v;continue;
+    }
+    if(rl.includes('bono')||rl.includes('tarjeta')){
+      const v=parseAmount(cols[3]);
+      if(v!==null){
+        const isAlta=rl.includes('alta');const isConsumo=rl.includes('consumo');
+        const vend=colVend>=0?cols[colVend]:'';
+        if(vend==='26'||rl.includes('\t26\t')){if(isAlta)cBA=Math.round(v);else if(isConsumo)cBC=v;}
+        if(vend==='61'||rl.includes('\t61\t')){if(isAlta)uBA=Math.round(v);else if(isConsumo)uBC=v;}
+      }
+      continue;
+    }
+    if(colVend>=0&&cols[colVend]==='26'){
+      const v=parseAmount(cols[3]);if(v===null)continue;
+      const g=(colGrupo>=0?cols[colGrupo]:'').toUpperCase();
+      if(g.includes('PROFESIONAL'))cavProf+=v;
+      else if(g.includes('INDUSTRIA'))cavInd+=v;
+      else if(g.includes('DISTRIBU'))cavDist+=v;
+    } else if(colVend<0){
+      const c0=cols[0],c1=cols[1];
+      if(c0==='26'||c1==='26'){
+        const v=parseAmount(cols[3]);
+        if(v!==null){
+          const g=(c0==='26'?cols[1]:cols[2]).toUpperCase();
+          if(g.includes('PROFESIONAL'))cavProf+=v;
+          else if(g.includes('INDUSTRIA'))cavInd+=v;
+          else if(g.includes('DISTRIBU'))cavDist+=v;
+        }
+      }
+    }
+  }
+
+  parsedERP={
+    comercialMonth,
+    cavProf:cavProf>0?Math.round(cavProf):null,
+    cavInd:cavInd>0?Math.round(cavInd):null,
+    cavDist:cavDist>0?Math.round(cavDist):null,
+    ursula:ursulaTotal!==null?Math.round(ursulaTotal):null,
+    bonos:{c:{altas:cBA,consumo:cBC},u:{altas:uBA,consumo:uBC}}
+  };
+
+  const cm2=parsedERP.comercialMonth;
+  const mLabel=`${MONTHS_ES[cm2.month]} ${cm2.year}`;
+  const row=(lbl,val,cls)=>`<div class="erp-prev-row"><span class="erp-prev-lbl">${lbl}</span><span class="erp-prev-val ${cls||(val!=='—'?'ok':'null')}">${val}</span></div>`;
+  const preview=document.getElementById('erp-preview');
+  preview.className='erp-preview';
+  preview.innerHTML=`
+    <div class="erp-prev-head">Resultados — Mes comercial: ${mLabel} · Fecha hasta: ${cm2.day}/${cm2.srcMon+1}/${cm2.srcYear}</div>
+    ${row('Cavero (Profesionales)',parsedERP.cavProf!==null?fmtEur(parsedERP.cavProf):'—')}
+    ${row('Cavero (Industria)',parsedERP.cavInd!==null?fmtEur(parsedERP.cavInd):'—',parsedERP.cavInd?'ok':'null')}
+    ${row('Cavero (Distribuidores)',parsedERP.cavDist!==null?fmtEur(parsedERP.cavDist):'—',parsedERP.cavDist?'ok':'null')}
+    ${row('Úrsula (Total vendedor 61)',parsedERP.ursula!==null?fmtEur(parsedERP.ursula):'—')}
+    ${row('Bonos Cavero (altas)',parsedERP.bonos.c.altas!==null?parsedERP.bonos.c.altas:'—',parsedERP.bonos.c.altas!==null?'ok':'null')}
+    ${row('Bonos Cavero (consumo)',parsedERP.bonos.c.consumo!==null?fmtEur(parsedERP.bonos.c.consumo):'—',parsedERP.bonos.c.consumo!==null?'ok':'null')}
+    ${row('Bonos Úrsula (altas)',parsedERP.bonos.u.altas!==null?parsedERP.bonos.u.altas:'—',parsedERP.bonos.u.altas!==null?'ok':'null')}
+    ${row('Bonos Úrsula (consumo)',parsedERP.bonos.u.consumo!==null?fmtEur(parsedERP.bonos.u.consumo):'—',parsedERP.bonos.u.consumo!==null?'ok':'null')}
+  `;
+  const hasData=parsedERP.cavProf!==null||parsedERP.ursula!==null;
+  if(hasData){ showERPAlert('Análisis completado. Revisa y pulsa "Guardar datos".','success'); document.getElementById('erp-save-row').classList.remove('hidden'); }
+  else showERPAlert('No se detectaron datos de ventas. Verifica el formato del Excel.','warning');
+}
+
+function saveERPData(){
+  if(!parsedERP)return;
+  const r=parsedERP; const cm=r.comercialMonth; const key=dateKey(cm.year,cm.month);
+  const ls=loadLS();
+  ls.cavero=ls.cavero||{}; ls.cavero.monthly=ls.cavero.monthly||{};
+  ls.cavero.monthly[cm.year]=ls.cavero.monthly[cm.year]||Array(12).fill(null);
+  ls.cavero.industria=ls.cavero.industria||{}; ls.cavero.distribuidores=ls.cavero.distribuidores||{};
+  ls.cavero.bonos=ls.cavero.bonos||{};
+  ls.ursula=ls.ursula||{}; ls.ursula.monthly=ls.ursula.monthly||{};
+  ls.ursula.monthly[cm.year]=ls.ursula.monthly[cm.year]||Array(12).fill(null);
+  ls.ursula.bonos=ls.ursula.bonos||{};
+
+  const hcC=HC.cavero.monthly[cm.year]?.[cm.month];
+  const hcU=HC.ursula.monthly[cm.year]?.[cm.month];
+  if(r.cavProf!==null&&hcC===null) ls.cavero.monthly[cm.year][cm.month]=r.cavProf;
+  if(r.cavInd!==null)  ls.cavero.industria[key]=r.cavInd;
+  if(r.cavDist!==null) ls.cavero.distribuidores[key]=r.cavDist;
+  if(r.ursula!==null&&hcU===null) ls.ursula.monthly[cm.year][cm.month]=r.ursula;
+
+  ls.cavero.bonos[key]=ls.cavero.bonos[key]||{}; ls.ursula.bonos[key]=ls.ursula.bonos[key]||{};
+  if(r.bonos.c.altas!==null)   ls.cavero.bonos[key].altas=r.bonos.c.altas;
+  if(r.bonos.c.consumo!==null) ls.cavero.bonos[key].consumo=r.bonos.c.consumo;
+  if(r.bonos.u.altas!==null)   ls.ursula.bonos[key].altas=r.bonos.u.altas;
+  if(r.bonos.u.consumo!==null) ls.ursula.bonos[key].consumo=r.bonos.u.consumo;
+
+  // Guardar fecha del archivo ERP como "fecha de datos"
+  const srcDate=new Date(cm.srcYear<100?2000+cm.srcYear:cm.srcYear, cm.srcMon, cm.day, 12,0,0);
+  ls.lastLoadDate=srcDate.toISOString();
+
+  saveLS(ls); parsedERP=null;
+  document.getElementById('erp-save-row').classList.add('hidden');
+  showERPAlert('Datos guardados correctamente. El cuadro se ha actualizado.','success');
+  updateHeaderDate();
+  // Sync active month selector (ERP data detected month might be different)
+  const detectedKey = dateKey(cm.year, cm.month);
+  const selAct = document.getElementById('active-month-sel');
+  if(selAct && selAct.querySelector(`option[value="${detectedKey}"]`)){
+    selAct.value = detectedKey;
+    activeCM = getComercialMonthByIndex(cm.year, cm.month);
+  }
+  const data=getMerged();
+  renderPanel('cavero',data,activeCM); renderPanel('ursula',data,activeCM);
+  chartsRendered={cavero:true,ursula:true};
+}
+
+function saveTarjetaManual(){
+  const sel=document.getElementById('tarj-month-sel');
+  const parts=sel.value.split('-'); const yr=parseInt(parts[0]),mon=parseInt(parts[1]); const key=sel.value;
+  const cA=parseFloat(document.getElementById('tarj-c-altas').value)||null;
+  const cC=parseFloat(document.getElementById('tarj-c-consumo').value)||null;
+  const uA=parseFloat(document.getElementById('tarj-u-altas').value)||null;
+  const uC=parseFloat(document.getElementById('tarj-u-consumo').value)||null;
+  if(cA===null&&cC===null&&uA===null&&uC===null){ showTarjAlert('Introduce al menos un valor.','warning'); return; }
+  const ls=loadLS();
+  ls.cavero=ls.cavero||{}; ls.cavero.bonos=ls.cavero.bonos||{};
+  ls.ursula=ls.ursula||{}; ls.ursula.bonos=ls.ursula.bonos||{};
+  ls.cavero.bonos[key]=ls.cavero.bonos[key]||{}; ls.ursula.bonos[key]=ls.ursula.bonos[key]||{};
+  if(cA!==null) ls.cavero.bonos[key].altas=Math.round(cA);
+  if(cC!==null) ls.cavero.bonos[key].consumo=cC;
+  if(uA!==null) ls.ursula.bonos[key].altas=Math.round(uA);
+  if(uC!==null) ls.ursula.bonos[key].consumo=uC;
+  saveLS(ls);
+  showTarjAlert(`Bonos de ${MONTHS_ES[mon-1]} ${yr} guardados.`,'success');
+  const data=getMerged();
+  renderPanel('cavero',data,activeCM); renderPanel('ursula',data,activeCM);
+  chartsRendered={cavero:true,ursula:true};
+}
+
+function showTarjAlert(msg,type){
+  const el=document.getElementById('tarj-save-alert');
+  el.className='erp-alert '+type; el.textContent=msg;
+  el.classList.remove('hidden'); setTimeout(()=>el.classList.add('hidden'),4000);
+}
+function showERPAlert(msg,type){ document.getElementById('erp-alert-wrap').innerHTML=`<div class="erp-alert ${type}">${msg}</div>`; }
+function clearERP(){
+  document.getElementById('erp-textarea').value='';
+  document.getElementById('erp-alert-wrap').innerHTML='';
+  document.getElementById('erp-preview').classList.add('hidden');
+  document.getElementById('erp-save-row').classList.add('hidden');
+  parsedERP=null;
+}
+function resetLS(){
+  if(!confirm('¿Borrar todos los datos importados? Los hardcodeados NO se borran.'))return;
+  localStorage.removeItem(LS_KEY);
+  updateHeaderDate();
+  initBudgetEditor();
+  const data=getMerged();
+  renderPanel('cavero',data,activeCM); renderPanel('ursula',data,activeCM);
+  chartsRendered={cavero:true,ursula:true};
+  showERPAlert('Datos importados eliminados.','success');
+}
+
+/* ── HEADER DATE: fecha última carga ERP ── */
+function updateHeaderDate(){
+  const ls=loadLS();
+  const el=document.getElementById('header-date');
+  if(ls.lastLoadDate){
+    const d=new Date(ls.lastLoadDate);
+    el.textContent=d.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+  } else {
+    el.textContent='Sin cargas guardadas';
+    el.style.fontSize='13px';
+  }
+}
+
+/* ── BUDGET EDITOR ── */
+function initBudgetEditor(){
+  const tbody = document.getElementById('budget-tbody');
+  if(!tbody) return;
+  const data = getMerged();
+  tbody.innerHTML = '';
+  let totC=0, totU=0;
+  for(let m=0;m<12;m++){
+    const vC = data.cavero.budget2026[m];
+    const vU = data.ursula.budget2026[m];
+    totC += vC||0; totU += vU||0;
+    // Check if this month has a custom LS value (show indicator)
+    const ls = loadLS();
+    const customC = ls?.cavero?.budget2026?.[m] != null;
+    const customU = ls?.ursula?.budget2026?.[m] != null;
+    const tr = document.createElement('tr');
+    tr.style.cssText = 'border-bottom:1px solid var(--bdr);';
+    tr.innerHTML = `
+      <td style="padding:10px 14px;font-weight:500;">${MONTHS_ES[m]}
+        ${customC||customU ? '<span style="font-size:11px;background:#fef3e0;color:#7a4a05;border-radius:4px;padding:1px 6px;margin-left:6px;">editado</span>' : ''}
+      </td>
+      <td style="padding:8px 14px;text-align:right;">
+        <input type="number" class="field-input budget-input"
+          id="bud-c-${m}" value="${vC}" min="0" step="1"
+          style="width:140px;text-align:right;font-size:15px;"
+          oninput="updateBudgetTotals()">
+      </td>
+      <td style="padding:8px 14px;text-align:right;">
+        <input type="number" class="field-input budget-input"
+          id="bud-u-${m}" value="${vU}" min="0" step="1"
+          style="width:140px;text-align:right;font-size:15px;"
+          oninput="updateBudgetTotals()">
+      </td>`;
+    tbody.appendChild(tr);
+  }
+  updateBudgetTotals();
+}
+
+function updateBudgetTotals(){
+  let totC=0, totU=0;
+  for(let m=0;m<12;m++){
+    totC += parseFloat(document.getElementById('bud-c-'+m)?.value||0)||0;
+    totU += parseFloat(document.getElementById('bud-u-'+m)?.value||0)||0;
+  }
+  const eC=document.getElementById('budget-total-cavero');
+  const eU=document.getElementById('budget-total-ursula');
+  if(eC) eC.textContent = new Intl.NumberFormat('es-ES').format(Math.round(totC))+' €';
+  if(eU) eU.textContent = new Intl.NumberFormat('es-ES').format(Math.round(totU))+' €';
+}
+
+function saveBudgets(){
+  const budC=[], budU=[];
+  for(let m=0;m<12;m++){
+    const vC=parseFloat(document.getElementById('bud-c-'+m)?.value);
+    const vU=parseFloat(document.getElementById('bud-u-'+m)?.value);
+    budC.push(isNaN(vC)?HC.cavero.budget2026[m]:Math.round(vC));
+    budU.push(isNaN(vU)?HC.ursula.budget2026[m]:Math.round(vU));
+  }
+  const ls=loadLS();
+  ls.cavero=ls.cavero||{}; ls.ursula=ls.ursula||{};
+  ls.cavero.budget2026=budC;
+  ls.ursula.budget2026=budU;
+  saveLS(ls);
+  // Re-init editor to show "editado" badges
+  initBudgetEditor();
+  // Refresh panels
+  const data=getMerged();
+  renderPanel('cavero',data,activeCM); renderPanel('ursula',data,activeCM);
+  chartsRendered={cavero:true,ursula:true};
+  showBudgetAlert('Presupuestos guardados correctamente.','success');
+}
+
+function resetBudgets(){
+  if(!confirm('¿Restaurar los presupuestos por defecto? Se perderán los valores editados.')) return;
+  const ls=loadLS();
+  if(ls.cavero) delete ls.cavero.budget2026;
+  if(ls.ursula) delete ls.ursula.budget2026;
+  saveLS(ls);
+  initBudgetEditor();
+  const data=getMerged();
+  renderPanel('cavero',data,activeCM); renderPanel('ursula',data,activeCM);
+  chartsRendered={cavero:true,ursula:true};
+  showBudgetAlert('Presupuestos restaurados a los valores por defecto.','success');
+}
+
+function showBudgetAlert(msg,type){
+  const el=document.getElementById('budget-alert');
+  if(!el) return;
+  el.className='erp-alert '+type; el.textContent=msg;
+  el.classList.remove('hidden'); setTimeout(()=>el.classList.add('hidden'),4000);
+}
+
+/* ── ACTIVE MONTH STATE ── */
+// activeCM is the comercialMonth object used for all KPI rendering
+// By default = current commercial month; can be overridden via selector
+let activeCM = null;
+
+function getComercialMonthByIndex(year, month) {
+  // Build a comercialMonth for any given year+month (0-indexed)
+  const pY = month===0 ? year-1 : year;
+  const pM = month===0 ? 11 : month-1;
+  const start = new Date(pY, pM, 26, 12,0,0);
+  const end   = new Date(year, month, 25, 12,0,0);
+  const totalDays = countWork(start, end);
+  // elapsedDays: only meaningful for current month; for past = totalDays, future = 0
+  const tn = new Date(TODAY); tn.setHours(12,0,0,0);
+  let elapsedDays;
+  if(tn < start) elapsedDays = 0;
+  else if(tn > end) elapsedDays = totalDays;
+  else elapsedDays = countWork(start, tn);
+  return {year, month, start, end, totalDays, elapsedDays};
+}
+
+function initActiveMonthSel(){
+  const sel = document.getElementById('active-month-sel');
+  if(!sel) return;
+  sel.innerHTML = '';
+  // Populate 2026 months
+  for(let m=0; m<12; m++){
+    const opt = document.createElement('option');
+    opt.value = `2026-${String(m+1).padStart(2,'0')}`;
+    opt.textContent = `${MONTHS_ES[m]} 2026`;
+    sel.appendChild(opt);
+  }
+  // Set to current commercial month by default
+  const cur = getComercialMonth(TODAY);
+  activeCM = cur;
+  sel.value = dateKey(cur.year, cur.month);
+  // Show "current month" label
+  const lbl = document.getElementById('current-month-label');
+  if(lbl) lbl.textContent = `${MONTHS_ES[cur.month]} ${cur.year}`;
+}
+
+function changeActiveMonth(val){
+  const parts = val.split('-');
+  const yr = parseInt(parts[0]), mn = parseInt(parts[1])-1;
+  activeCM = getComercialMonthByIndex(yr, mn);
+  const data = getMerged();
+  renderPanel('cavero', data, activeCM);
+  renderPanel('ursula', data, activeCM);
+  chartsRendered = {cavero:true, ursula:true};
+}
+
+function resetToCurrentMonth(){
+  const cur = getComercialMonth(TODAY);
+  activeCM = cur;
+  const sel = document.getElementById('active-month-sel');
+  if(sel) sel.value = dateKey(cur.year, cur.month);
+  const data = getMerged();
+  renderPanel('cavero', data, activeCM);
+  renderPanel('ursula', data, activeCM);
+  chartsRendered = {cavero:true, ursula:true};
+}
+
+/* ── TABS ── */
+let chartsRendered={cavero:false,ursula:false};
+function showTab(tab){
+  ['cavero','ursula','erp'].forEach(t=>{
+    document.getElementById('panel-'+t).classList.remove('active');
+    document.getElementById('tab-'+t).className='tab-btn';
+  });
+  document.getElementById('panel-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab).className='tab-btn active-'+tab;
+  if((tab==='cavero'||tab==='ursula')&&!chartsRendered[tab]){
+    const data=getMerged();
+    buildChart2026(tab,data,activeCM); buildChartRolling(tab,data); buildChartAnnual(tab,data);
+    chartsRendered[tab]=true;
+  }
+}
+
+function initMonthSel(){
+  const sel=document.getElementById('tarj-month-sel'); sel.innerHTML='';
+  for(let m=0;m<12;m++){
+    const opt=document.createElement('option');
+    opt.value=`2026-${String(m+1).padStart(2,'0')}`;
+    opt.textContent=`${MONTHS_ES[m]} 2026`;
+    sel.appendChild(opt);
+  }
+  sel.value = dateKey(activeCM.year, activeCM.month);
+}
+
+const TODAY=new Date();
+async function init(){
+  initActiveMonthSel();   // sets activeCM to current commercial month
+  // Try to load data.json generated by Python script (silent if not found)
+  await tryLoadDataJson();
+  updateHeaderDate();
+  initMonthSel();
+  initBudgetEditor();
+  const data=getMerged();
+  renderPanel('cavero',data,activeCM); renderPanel('ursula',data,activeCM);
+  chartsRendered.cavero=true;
+  showTab('cavero');
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
