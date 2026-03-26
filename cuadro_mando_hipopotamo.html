@@ -364,11 +364,13 @@ html, body {
       <div class="kpi-card accent-blue">
         <div class="kpi-label">Alta bonos</div>
         <div class="kpi-value blue" id="kpi-bonos-altas-cavero">—</div>
+        <div class="kpi-sub" id="kpi-bonos-altas-prev-cavero" style="margin-top:6px;">2025: —</div>
         <div class="kpi-cmp neu" id="kpi-bonos-altas-cmp-cavero">vs año ant.: —</div>
       </div>
       <div class="kpi-card accent-blue">
         <div class="kpi-label">Consumo bono</div>
         <div class="kpi-value blue" id="kpi-bonos-consumo-cavero">—</div>
+        <div class="kpi-sub" id="kpi-bonos-consumo-prev-cavero" style="margin-top:6px;">2025: —</div>
         <div class="kpi-cmp neu" id="kpi-bonos-consumo-cmp-cavero">vs año ant.: —</div>
       </div>
     </div>
@@ -411,7 +413,7 @@ html, body {
     <div class="section-head"><span class="section-title">Bonos — histórico 2026</span></div>
     <div class="tarj-table-wrap">
       <table class="tarj-table">
-        <thead><tr><th>Mes comercial</th><th>Alta bonos</th><th>vs año ant.</th><th>Consumo bono</th><th>vs año ant.</th></tr></thead>
+        <thead><tr><th>Mes comercial</th><th>Alta bonos 2026</th><th>Alta bonos 2025</th><th>vs año ant.</th><th>Consumo bono 2026</th><th>Consumo bono 2025</th><th>vs año ant.</th></tr></thead>
         <tbody id="tarj-tbody-cavero"></tbody>
       </table>
     </div>
@@ -466,11 +468,13 @@ html, body {
       <div class="kpi-card accent-green">
         <div class="kpi-label">Alta bonos</div>
         <div class="kpi-value green" id="kpi-bonos-altas-ursula">—</div>
+        <div class="kpi-sub" id="kpi-bonos-altas-prev-ursula" style="margin-top:6px;">2025: —</div>
         <div class="kpi-cmp neu" id="kpi-bonos-altas-cmp-ursula">vs año ant.: —</div>
       </div>
       <div class="kpi-card accent-green">
         <div class="kpi-label">Consumo bono</div>
         <div class="kpi-value green" id="kpi-bonos-consumo-ursula">—</div>
+        <div class="kpi-sub" id="kpi-bonos-consumo-prev-ursula" style="margin-top:6px;">2025: —</div>
         <div class="kpi-cmp neu" id="kpi-bonos-consumo-cmp-ursula">vs año ant.: —</div>
       </div>
     </div>
@@ -513,7 +517,7 @@ html, body {
     <div class="section-head"><span class="section-title">Bonos — histórico 2026</span></div>
     <div class="tarj-table-wrap">
       <table class="tarj-table">
-        <thead><tr><th>Mes comercial</th><th>Alta bonos</th><th>vs año ant.</th><th>Consumo bono</th><th>vs año ant.</th></tr></thead>
+        <thead><tr><th>Mes comercial</th><th>Alta bonos 2026</th><th>Alta bonos 2025</th><th>vs año ant.</th><th>Consumo bono 2026</th><th>Consumo bono 2025</th><th>vs año ant.</th></tr></thead>
         <tbody id="tarj-tbody-ursula"></tbody>
       </table>
     </div>
@@ -1034,10 +1038,18 @@ function renderPanel(person,data,cm){
   const b=data[person].bonos?.[bKey]||{};
   const bP=data[person].bonos?.[bPrevKey]||{};
 
-  document.getElementById('kpi-bonos-altas-'+person).textContent=b.altas!=null?fmtNum(b.altas):'—';
+  // 1. Cifra 2026
+  document.getElementById('kpi-bonos-altas-'+person).textContent=b.altas!=null?fmtEur(b.altas):'—';
   document.getElementById('kpi-bonos-consumo-'+person).textContent=b.consumo!=null?fmtEur(b.consumo):'—';
 
-  const ca=cmpText(b.altas??null,bP.altas??null,false);
+  // 2. Cifra mismo mes año anterior (2025)
+  const prevAltasEl=document.getElementById('kpi-bonos-altas-prev-'+person);
+  const prevConsEl=document.getElementById('kpi-bonos-consumo-prev-'+person);
+  if(prevAltasEl) prevAltasEl.textContent=bP.altas!=null?`${cm.year-1}: ${fmtEur(bP.altas)}`:`${cm.year-1}: —`;
+  if(prevConsEl)  prevConsEl.textContent=bP.consumo!=null?`${cm.year-1}: ${fmtEur(bP.consumo)}`:`${cm.year-1}: —`;
+
+  // 3. Diferencia vs año anterior
+  const ca=cmpText(b.altas??null,bP.altas??null,true);
   const cc=cmpText(b.consumo??null,bP.consumo??null,true);
   const caEl=document.getElementById('kpi-bonos-altas-cmp-'+person);
   const ccEl=document.getElementById('kpi-bonos-consumo-cmp-'+person);
@@ -1063,13 +1075,30 @@ function renderBonosTable(person,data,cm){
     const tr=document.createElement('tr');
     if(isCur) tr.className='current-month';
     const mLbl=MONTHS_ES[m]+' 2026'+(isCur?' ↩':'');
-    const aTxt=b.altas!=null?fmtNum(b.altas):'<span class="empty-cell">—</span>';
-    const cTxt=b.consumo!=null?fmtEur(b.consumo):'<span class="empty-cell">—</span>';
+
+    // Alta bonos 2026
+    const a26=b.altas!=null?fmtEur(b.altas):'<span class="empty-cell">—</span>';
+    // Alta bonos 2025
+    const a25=bP.altas!=null?fmtEur(bP.altas):'<span class="empty-cell">—</span>';
+    // Alta vs año ant.
     let aCmp='<span class="cmp-neu">—</span>';
-    if(b.altas!=null&&bP.altas!=null){ const d=b.altas-bP.altas; aCmp=`<span class="${d>=0?'cmp-pos':'cmp-neg'}">${d>=0?'+':''}${d}</span>`; }
+    if(b.altas!=null&&bP.altas!=null){
+      const d=b.altas-bP.altas;
+      aCmp=`<span class="${d>=0?'cmp-pos':'cmp-neg'}">${d>=0?'+':'−'}${fmtEur(Math.abs(d))}</span>`;
+    }
+
+    // Consumo bono 2026
+    const c26=b.consumo!=null?fmtEur(b.consumo):'<span class="empty-cell">—</span>';
+    // Consumo bono 2025
+    const c25=bP.consumo!=null?fmtEur(bP.consumo):'<span class="empty-cell">—</span>';
+    // Consumo vs año ant.
     let cCmp='<span class="cmp-neu">—</span>';
-    if(b.consumo!=null&&bP.consumo!=null){ const d=b.consumo-bP.consumo; cCmp=`<span class="${d>=0?'cmp-pos':'cmp-neg'}">${d>=0?'+':'−'}${fmtEur(Math.abs(d))}</span>`; }
-    tr.innerHTML=`<td>${mLbl}</td><td>${aTxt}</td><td>${aCmp}</td><td>${cTxt}</td><td>${cCmp}</td>`;
+    if(b.consumo!=null&&bP.consumo!=null){
+      const d=b.consumo-bP.consumo;
+      cCmp=`<span class="${d>=0?'cmp-pos':'cmp-neg'}">${d>=0?'+':'−'}${fmtEur(Math.abs(d))}</span>`;
+    }
+
+    tr.innerHTML=`<td>${mLbl}</td><td>${a26}</td><td>${a25}</td><td>${aCmp}</td><td>${c26}</td><td>${c25}</td><td>${cCmp}</td>`;
     tbody.appendChild(tr);
   }
 }
