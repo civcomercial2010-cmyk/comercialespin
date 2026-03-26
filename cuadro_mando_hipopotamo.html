@@ -1119,6 +1119,7 @@ function parseERPData(){
   document.getElementById('erp-preview').classList.add('hidden');
   document.getElementById('erp-save-row').classList.add('hidden');
 
+  // Fecha hasta
   let comercialMonth=null;
   for(const line of lines){
     const m=line.match(/Fecha\s+hasta[:\s]+(\d{1,2})\/(\d{1,2})\/(\d{2,4})/i);
@@ -1131,52 +1132,59 @@ function parseERPData(){
       break;
     }
   }
-  if(!comercialMonth){ showERPAlert('No se encontró "Fecha hasta". Copia la hoja completa.','error'); return; }
+  if(!comercialMonth){showERPAlert('No se encontró "Fecha hasta". Copia la hoja completa.','error');return;}
 
-  let colVend=-1,colGrupo=-1;
+  // Encontrar cabecera de VENDEDORES (la que tiene "Vendedor" en col A)
+  let colGrupo=2,colImporte=3,colConsumoT=6,colAltaT=7;
+  let pastVendHeader=false;
   for(const line of lines){
     const cols=line.split('\t').map(c=>c.trim().toLowerCase());
-    const iV=cols.findIndex(c=>c==='vendedor'||c==='vend');
-    if(iV>=0){colVend=iV;colGrupo=cols.findIndex(c=>c==='grupo'||c==='grup');break;}
+    if(cols[0]==='vendedor'&&cols.some(c=>c.includes('grupo'))){
+      colGrupo    =cols.findIndex(c=>c==='grupo'||c==='grup');
+      const ci    =cols.findIndex(c=>c.includes('base imponible'));    if(ci>=0) colImporte=ci;
+      const ct    =cols.findIndex(c=>c.includes('consumo')&&c.includes('tarj')); if(ct>=0) colConsumoT=ct;
+      const at    =cols.findIndex(c=>c.includes('alta')&&c.includes('tarj'));    if(at>=0) colAltaT=at;
+      pastVendHeader=false; // reset — next line is data
+      break;
+    }
   }
 
-  let cavProf=0,cavInd=0,cavDist=0,ursulaTotal=null;
-  let cBA=null,cBC=null,uBA=null,uBC=null;
+  // Parsear filas de datos
+  let cavProf=0,cavInd=0,cavDist=0;
+  let cavBA=null,cavBC=null,ursTotal=null,ursBA=null,ursBC=null;
+  let inVendSection=false;
 
   for(const line of lines){
     const cols=line.split('\t').map(c=>c.trim());
-    if(cols.length<4)continue;
-    const rl=line.toLowerCase();
-    if(rl.includes('total vendedor 61')||(rl.includes('ursula')&&rl.includes('total'))){
-      const v=parseAmount(cols[3]);if(v!==null)ursulaTotal=v;continue;
-    }
-    if(rl.includes('bono')||rl.includes('tarjeta')){
-      const v=parseAmount(cols[3]);
-      if(v!==null){
-        const isAlta=rl.includes('alta');const isConsumo=rl.includes('consumo');
-        const vend=colVend>=0?cols[colVend]:'';
-        if(vend==='26'||rl.includes('\t26\t')){if(isAlta)cBA=Math.round(v);else if(isConsumo)cBC=v;}
-        if(vend==='61'||rl.includes('\t61\t')){if(isAlta)uBA=Math.round(v);else if(isConsumo)uBC=v;}
-      }
+    if(!cols.length) continue;
+    const c0l=cols[0].toLowerCase();
+    if(cols[0].toLowerCase()==='vendedor'){inVendSection=true;continue;}
+    if(!inVendSection) continue;
+    const c0=cols[0];
+    const grupo=(cols[colGrupo]||'').toUpperCase();
+    const getVal=ci=>{
+      const raw=cols[ci]||'';
+      const s=raw.replace(/\s/g,'').replace(/\./g,'').replace(',','.');
+      const v=parseFloat(s); return isNaN(v)?null:v;
+    };
+    const importe=getVal(colImporte);
+    if(/^total\s+vendedor\s+26\b/i.test(c0)){
+      const ct=getVal(colConsumoT),at=getVal(colAltaT);
+      if(at!=null) cavBA=Math.round(Math.abs(at));
+      if(ct!=null) cavBC=Math.round(Math.abs(ct));
       continue;
     }
-    if(colVend>=0&&cols[colVend]==='26'){
-      const v=parseAmount(cols[3]);if(v===null)continue;
-      const g=(colGrupo>=0?cols[colGrupo]:'').toUpperCase();
-      if(g.includes('PROFESIONAL'))cavProf+=v;
-      else if(g.includes('INDUSTRIA'))cavInd+=v;
-      else if(g.includes('DISTRIBU'))cavDist+=v;
-    } else if(colVend<0){
-      const c0=cols[0],c1=cols[1];
-      if(c0==='26'||c1==='26'){
-        const v=parseAmount(cols[3]);
-        if(v!==null){
-          const g=(c0==='26'?cols[1]:cols[2]).toUpperCase();
-          if(g.includes('PROFESIONAL'))cavProf+=v;
-          else if(g.includes('INDUSTRIA'))cavInd+=v;
-          else if(g.includes('DISTRIBU'))cavDist+=v;
-        }
-      }
+    if(/^total\s+vendedor\s+61\b/i.test(c0)){
+      if(importe!=null) ursTotal=Math.round(importe*100)/100;
+      const ct=getVal(colConsumoT),at=getVal(colAltaT);
+      if(at!=null) ursBA=Math.round(Math.abs(at));
+      if(ct!=null) ursBC=Math.round(Math.abs(ct));
+      continue;
+    }
+    if(c0==='26'&&importe!=null){
+      if(grupo.includes('PROFESIONAL'))                        cavProf+=importe;
+      else if(grupo.includes('DISTRIBU')||grupo==='DIS V2')    cavDist+=importe;
+      else if(grupo.includes('INDUSTRIA'))                     cavInd +=importe;
     }
   }
 
@@ -1185,34 +1193,62 @@ function parseERPData(){
     cavProf:cavProf>0?Math.round(cavProf):null,
     cavInd:cavInd>0?Math.round(cavInd):null,
     cavDist:cavDist>0?Math.round(cavDist):null,
-    ursula:ursulaTotal!==null?Math.round(ursulaTotal):null,
-    bonos:{c:{altas:cBA,consumo:cBC},u:{altas:uBA,consumo:uBC}}
+    ursula:ursTotal,
+    bonos:{c:{altas:cavBA,consumo:cavBC},u:{altas:ursBA,consumo:ursBC}}
   };
 
+  // Preview editable
   const cm2=parsedERP.comercialMonth;
-  const mLabel=`${MONTHS_ES[cm2.month]} ${cm2.year}`;
-  const row=(lbl,val,cls)=>`<div class="erp-prev-row"><span class="erp-prev-lbl">${lbl}</span><span class="erp-prev-val ${cls||(val!=='—'?'ok':'null')}">${val}</span></div>`;
+  const mLabel=MONTHS_ES[cm2.month]+' '+cm2.year;
+  const fv=v=>v!=null?v:'';
+  const editRow=(id,lbl,val)=>`
+    <div class="erp-prev-row">
+      <span class="erp-prev-lbl">${lbl}</span>
+      <span style="display:flex;align-items:center;gap:6px;">
+        <input type="number" id="ep-${id}" value="${fv(val)}" min="0" step="0.01"
+          style="width:150px;padding:5px 10px;font-size:14px;font-family:inherit;
+                 border:1px solid var(--bdr2);border-radius:var(--r-sm);
+                 background:var(--srf);color:var(--txt);text-align:right;">
+        <span style="font-size:13px;color:var(--txt3);">€</span>
+      </span>
+    </div>`;
+
   const preview=document.getElementById('erp-preview');
   preview.className='erp-preview';
-  preview.innerHTML=`
-    <div class="erp-prev-head">Resultados — Mes comercial: ${mLabel} · Fecha hasta: ${cm2.day}/${cm2.srcMon+1}/${cm2.srcYear}</div>
-    ${row('Cavero (Profesionales)',parsedERP.cavProf!==null?fmtEur(parsedERP.cavProf):'—')}
-    ${row('Cavero (Industria)',parsedERP.cavInd!==null?fmtEur(parsedERP.cavInd):'—',parsedERP.cavInd?'ok':'null')}
-    ${row('Cavero (Distribuidores)',parsedERP.cavDist!==null?fmtEur(parsedERP.cavDist):'—',parsedERP.cavDist?'ok':'null')}
-    ${row('Úrsula (Total vendedor 61)',parsedERP.ursula!==null?fmtEur(parsedERP.ursula):'—')}
-    ${row('Bonos Cavero (altas)',parsedERP.bonos.c.altas!==null?parsedERP.bonos.c.altas:'—',parsedERP.bonos.c.altas!==null?'ok':'null')}
-    ${row('Bonos Cavero (consumo)',parsedERP.bonos.c.consumo!==null?fmtEur(parsedERP.bonos.c.consumo):'—',parsedERP.bonos.c.consumo!==null?'ok':'null')}
-    ${row('Bonos Úrsula (altas)',parsedERP.bonos.u.altas!==null?parsedERP.bonos.u.altas:'—',parsedERP.bonos.u.altas!==null?'ok':'null')}
-    ${row('Bonos Úrsula (consumo)',parsedERP.bonos.u.consumo!==null?fmtEur(parsedERP.bonos.u.consumo):'—',parsedERP.bonos.u.consumo!==null?'ok':'null')}
-  `;
+  preview.innerHTML=
+    '<div class="erp-prev-head">Mes detectado: <strong>'+mLabel+'</strong>'
+    +' &nbsp;·&nbsp; Fecha hasta: '+cm2.day+'/'+(cm2.srcMon+1)+'/'+cm2.srcYear
+    +' &nbsp;·&nbsp; <span style="font-size:12px;color:var(--txt3);">Edita los valores si es necesario antes de guardar</span></div>'
+    +'<div style="padding:8px 18px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);">Antonio Cavero</div>'
+    +editRow('cav-prof','Profesionales',parsedERP.cavProf)
+    +editRow('cav-dist','Distribuidores',parsedERP.cavDist)
+    +editRow('cav-ind','Industria',parsedERP.cavInd)
+    +editRow('cav-baltas','Alta bonos',parsedERP.bonos.c.altas)
+    +editRow('cav-bcons','Consumo bono',parsedERP.bonos.c.consumo)
+    +'<div style="padding:8px 18px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);border-top:1px solid var(--bdr);margin-top:4px;">Úrsula Moreno</div>'
+    +editRow('urs-total','Venta total',parsedERP.ursula)
+    +editRow('urs-baltas','Alta bonos',parsedERP.bonos.u.altas)
+    +editRow('urs-bcons','Consumo bono',parsedERP.bonos.u.consumo);
+
   const hasData=parsedERP.cavProf!==null||parsedERP.ursula!==null;
-  if(hasData){ showERPAlert('Análisis completado. Revisa y pulsa "Guardar datos".','success'); document.getElementById('erp-save-row').classList.remove('hidden'); }
-  else showERPAlert('No se detectaron datos de ventas. Verifica el formato del Excel.','warning');
+  if(hasData){
+    showERPAlert('Análisis completado. Revisa los valores (puedes editarlos) y pulsa "Guardar datos".','success');
+    document.getElementById('erp-save-row').classList.remove('hidden');
+  } else {
+    showERPAlert('No se detectaron datos. Verifica que has copiado desde la fila de cabecera "Vendedor".','warning');
+  }
 }
 
 function saveERPData(){
   if(!parsedERP)return;
-  const r=parsedERP; const cm=r.comercialMonth; const key=dateKey(cm.year,cm.month);
+  const gv=id=>{const el=document.getElementById('ep-'+id);if(!el||el.value==='')return null;const v=parseFloat(el.value);return isNaN(v)?null:Math.round(v*100)/100;};
+  const r={
+    comercialMonth:parsedERP.comercialMonth,
+    cavProf:gv('cav-prof'),cavDist:gv('cav-dist'),cavInd:gv('cav-ind'),
+    ursula:gv('urs-total'),
+    bonos:{c:{altas:gv('cav-baltas'),consumo:gv('cav-bcons')},u:{altas:gv('urs-baltas'),consumo:gv('urs-bcons')}}
+  };
+  const cm=r.comercialMonth; const key=dateKey(cm.year,cm.month);
   const ls=loadLS();
   ls.cavero=ls.cavero||{}; ls.cavero.monthly=ls.cavero.monthly||{};
   ls.cavero.monthly[cm.year]=ls.cavero.monthly[cm.year]||Array(12).fill(null);
@@ -1221,39 +1257,34 @@ function saveERPData(){
   ls.ursula=ls.ursula||{}; ls.ursula.monthly=ls.ursula.monthly||{};
   ls.ursula.monthly[cm.year]=ls.ursula.monthly[cm.year]||Array(12).fill(null);
   ls.ursula.bonos=ls.ursula.bonos||{};
-
   const hcC=HC.cavero.monthly[cm.year]?.[cm.month];
   const hcU=HC.ursula.monthly[cm.year]?.[cm.month];
   if(r.cavProf!==null&&hcC===null) ls.cavero.monthly[cm.year][cm.month]=r.cavProf;
   if(r.cavInd!==null)  ls.cavero.industria[key]=r.cavInd;
   if(r.cavDist!==null) ls.cavero.distribuidores[key]=r.cavDist;
-  if(r.ursula!==null&&hcU===null) ls.ursula.monthly[cm.year][cm.month]=r.ursula;
-
+  if(r.ursula!==null&&hcU===null)  ls.ursula.monthly[cm.year][cm.month]=r.ursula;
   ls.cavero.bonos[key]=ls.cavero.bonos[key]||{}; ls.ursula.bonos[key]=ls.ursula.bonos[key]||{};
   if(r.bonos.c.altas!==null)   ls.cavero.bonos[key].altas=r.bonos.c.altas;
   if(r.bonos.c.consumo!==null) ls.cavero.bonos[key].consumo=r.bonos.c.consumo;
   if(r.bonos.u.altas!==null)   ls.ursula.bonos[key].altas=r.bonos.u.altas;
   if(r.bonos.u.consumo!==null) ls.ursula.bonos[key].consumo=r.bonos.u.consumo;
-
-  // Guardar fecha del archivo ERP como "fecha de datos"
-  const srcDate=new Date(cm.srcYear<100?2000+cm.srcYear:cm.srcYear, cm.srcMon, cm.day, 12,0,0);
+  const srcDate=new Date(cm.srcYear<100?2000+cm.srcYear:cm.srcYear,cm.srcMon,cm.day,12,0,0);
   ls.lastLoadDate=srcDate.toISOString();
-
   saveLS(ls); parsedERP=null;
   document.getElementById('erp-save-row').classList.add('hidden');
-  showERPAlert('Datos guardados correctamente. El cuadro se ha actualizado.','success');
+  showERPAlert('Datos de '+MONTHS_ES[cm.month]+' '+cm.year+' guardados correctamente.','success');
   updateHeaderDate();
-  // Sync active month selector (ERP data detected month might be different)
-  const detectedKey = dateKey(cm.year, cm.month);
-  const selAct = document.getElementById('active-month-sel');
-  if(selAct && selAct.querySelector(`option[value="${detectedKey}"]`)){
-    selAct.value = detectedKey;
-    activeCM = getComercialMonthByIndex(cm.year, cm.month);
+  const detectedKey=dateKey(cm.year,cm.month);
+  const selAct=document.getElementById('active-month-sel');
+  if(selAct&&selAct.querySelector('option[value="'+detectedKey+'"]')){
+    selAct.value=detectedKey;
+    activeCM=getComercialMonthByIndex(cm.year,cm.month);
   }
   const data=getMerged();
   renderPanel('cavero',data,activeCM); renderPanel('ursula',data,activeCM);
   chartsRendered={cavero:true,ursula:true};
 }
+
 
 function saveTarjetaManual(){
   const sel=document.getElementById('tarj-month-sel');
