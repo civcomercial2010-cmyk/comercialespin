@@ -1,0 +1,44 @@
+{
+  "cavero": {
+    "monthly": {
+      "2026": [
+        null,
+        null,
+        83409.88,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    "industria": {
+      "2026-03": 7799.36
+    },
+    "distribuidores": {}
+  },
+  "ursula": {
+    "monthly": {
+      "2026": [
+        null,
+        null,
+        32518.32,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    }
+  },
+  "lastLoadDate": "2026-03-25",
+  "lastRunTs": "2026-03-26T16:20:01.001368"
+}
