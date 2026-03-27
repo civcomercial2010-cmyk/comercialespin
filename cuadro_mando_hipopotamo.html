@@ -700,7 +700,7 @@ const HC = {
 
 const FESTIVOS = [
   '2026-01-01','2026-01-06','2026-03-05','2026-04-02',
-  '2026-04-03','2026-05-01','2026-10-12',
+  '2026-04-03','2026-04-23','2026-05-01','2026-10-12',
   '2026-11-01','2026-12-06','2026-12-08','2026-12-25'
 ].map(s=>{ const d=new Date(s+'T12:00:00'); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); });
 
@@ -711,6 +711,30 @@ function countWork(from,to){
   const e=new Date(to); e.setHours(12,0,0,0);
   while(d<=e){if(isWork(d))n++;d.setDate(d.getDate()+1);}
   return n;
+}
+function parseLastLoadDateLocal(raw){
+  if(!raw) return null;
+  const s = String(raw).trim();
+  // yyyy-mm-dd o ISO
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(iso){
+    const d = new Date(parseInt(iso[1]), parseInt(iso[2])-1, parseInt(iso[3]), 12, 0, 0);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // dd/mm/yyyy o dd/mm/yy
+  const es = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if(es){
+    let y = parseInt(es[3]);
+    if(y < 100) y += 2000;
+    const d = new Date(y, parseInt(es[2])-1, parseInt(es[1]), 12, 0, 0);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(s);
+  if(!isNaN(d.getTime())){
+    d.setHours(12,0,0,0);
+    return d;
+  }
+  return null;
 }
 function getComercialMonth(today){
   const day=today.getDate(); let year=today.getFullYear(), month=today.getMonth();
@@ -725,10 +749,10 @@ function getComercialMonth(today){
   const ls=loadLS();
   let refDate;
   if(ls.lastLoadDate){
-    // lastLoadDate viene como "2026-03-25" (fecha hasta del Excel)
-    // Parsear como fecha local para evitar que UTC medianoche dé el día anterior
-    const parts=ls.lastLoadDate.substring(0,10).split('-');
-    refDate=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]),12,0,0);
+    refDate=parseLastLoadDateLocal(ls.lastLoadDate);
+    if(!refDate){
+      refDate=new Date(today); refDate.setHours(12,0,0,0);
+    }
   } else {
     refDate=new Date(today); refDate.setHours(12,0,0,0);
   }
@@ -1611,8 +1635,10 @@ function getComercialMonthByIndex(year, month) {
   const ls = loadLS();
   let refDate;
   if(ls.lastLoadDate){
-    const parts=ls.lastLoadDate.substring(0,10).split('-');
-    refDate=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]),12,0,0);
+    refDate=parseLastLoadDateLocal(ls.lastLoadDate);
+    if(!refDate){
+      refDate=new Date(TODAY); refDate.setHours(12,0,0,0);
+    }
   } else {
     refDate=new Date(TODAY); refDate.setHours(12,0,0,0);
   }
