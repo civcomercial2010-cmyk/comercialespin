@@ -469,7 +469,7 @@ def build_html(data_payload: dict):
 # ──────────────────────────────────────────────────────────
 def main():
     log.info("=" * 60)
-    log.info("Extractor Ventas — GitHub Actions")
+    log.info("Extractor Ventas — GitHub Actions v2")
     log.info(f"Hora UTC: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}")
     log.info("=" * 60)
 
