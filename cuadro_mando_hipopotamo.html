@@ -885,10 +885,10 @@ async function syncDataJsonToGitHub(){
 
 /* ── CARGA AUTOMÁTICA DE data.json (generado por el script Python) ──
    El HTML intenta leer data.json desde su misma carpeta cada vez que se abre.
-   Si lo encuentra, vuelca su contenido a localStorage (sin sobrescribir
-   presupuestos ni bonos editados manualmente) y refresca el cuadro.
-   Si no lo encuentra (apertura desde otro directorio o sin script),
-   funciona solo con localStorage como siempre.
+   Si lo encuentra, fusiona con localStorage: si data.json es más reciente
+   (lastRunTs), sustituye ventas/industria/distribuidores/bonos; si no, solo
+   rellena huecos. El hardcode HC sigue teniendo prioridad en getMerged() donde
+   corresponde. Presupuestos (budget2026) no se tocan aquí.
 ─────────────────────────────────────────────────────────────────── */
 async function tryLoadDataJson(){
   try {
@@ -896,9 +896,12 @@ async function tryLoadDataJson(){
     if(!resp.ok) return false;
     const remote = await resp.json();
 
-    // Merge remoto NO destructivo:
-    // lo ya guardado en localStorage (ERP/manual) tiene prioridad total.
     const ls = loadLS();
+    const remoteTs = remote.lastRunTs ? new Date(remote.lastRunTs).getTime() : 0;
+    const localTs = ls.lastRunTs ? new Date(ls.lastRunTs).getTime() : 0;
+    // Si data.json de GitHub es más reciente que lo último que teníamos guardado,
+    // aplicar sus cifras (Actions / ERP remoto); si no, solo rellenar huecos (comportamiento anterior).
+    const preferRemote = remoteTs > localTs;
 
     // ── ventas mensuales
     for(const person of ['cavero','ursula']){
@@ -912,11 +915,11 @@ async function tryLoadDataJson(){
           ls[person].monthly[yr] = ls[person].monthly[yr] || Array(12).fill(null);
           arr.forEach((v,i)=>{
             if(v === null || v === undefined) return;
-            // HC overrides remote for months it covers
             const hcVal = HC[person]?.monthly?.[yr]?.[i];
             if(hcVal !== null && hcVal !== undefined) return;
-            // No machacar lo que ya exista en LS
-            if(ls[person].monthly[yr][i] === null || ls[person].monthly[yr][i] === undefined){
+            if(preferRemote){
+              ls[person].monthly[yr][i] = v;
+            } else if(ls[person].monthly[yr][i] === null || ls[person].monthly[yr][i] === undefined){
               ls[person].monthly[yr][i] = v;
             }
           });
@@ -927,7 +930,9 @@ async function tryLoadDataJson(){
       if(remote[person].industria){
         ls[person].industria = ls[person].industria || {};
         for(const [k,v] of Object.entries(remote[person].industria)){
-          if(ls[person].industria[k] === null || ls[person].industria[k] === undefined){
+          if(preferRemote){
+            ls[person].industria[k] = v;
+          } else if(ls[person].industria[k] === null || ls[person].industria[k] === undefined){
             ls[person].industria[k] = v;
           }
         }
@@ -935,7 +940,9 @@ async function tryLoadDataJson(){
       if(remote[person].distribuidores){
         ls[person].distribuidores = ls[person].distribuidores || {};
         for(const [k,v] of Object.entries(remote[person].distribuidores)){
-          if(ls[person].distribuidores[k] === null || ls[person].distribuidores[k] === undefined){
+          if(preferRemote){
+            ls[person].distribuidores[k] = v;
+          } else if(ls[person].distribuidores[k] === null || ls[person].distribuidores[k] === undefined){
             ls[person].distribuidores[k] = v;
           }
         }
@@ -945,7 +952,9 @@ async function tryLoadDataJson(){
         for(const [k,obj] of Object.entries(remote[person].bonos)){
           ls[person].bonos[k] = ls[person].bonos[k] || {};
           for(const [bk,bv] of Object.entries(obj||{})){
-            if(ls[person].bonos[k][bk] === null || ls[person].bonos[k][bk] === undefined){
+            if(preferRemote){
+              ls[person].bonos[k][bk] = bv;
+            } else if(ls[person].bonos[k][bk] === null || ls[person].bonos[k][bk] === undefined){
               ls[person].bonos[k][bk] = bv;
             }
           }
