@@ -160,8 +160,10 @@ def get_excel_fecha_hasta(msg) -> date | None:
 
 def find_best_email(conn, cfg) -> bytes | None:
     """
-    Busca entre los emails recientes el que tenga el Excel con la 'Fecha hasta'
-    MÁS RECIENTE sin superar la fecha de hoy (UTC).
+    Busca entre los emails recientes el que tenga el Excel con la fecha de
+    generación MÁS RECIENTE sin superar la fecha de hoy (UTC).
+    Nota: en estos informes la "Fecha hasta" suele ser el fin del periodo
+    comercial (p.ej. 25/04) aunque hoy sea 26/03, así que NO se usa para filtrar.
     """
     carpeta = cfg.get("carpeta_busqueda", "INBOX")
     conn.select(carpeta, readonly=True)
@@ -185,7 +187,7 @@ def find_best_email(conn, cfg) -> bytes | None:
         log.warning("No se encontraron emails.")
         return None
 
-    log.info(f"  {len(ids)} email(s) candidato(s). Leyendo 'Fecha hasta' de cada Excel...")
+    log.info(f"  {len(ids)} email(s) candidato(s). Leyendo fechas de cada Excel...")
 
     today_utc = datetime.now(timezone.utc).date()
     best_uid  = None
@@ -194,22 +196,22 @@ def find_best_email(conn, cfg) -> bytes | None:
     for uid in ids:
         _, full = conn.fetch(uid, "(RFC822)")
         msg = email.message_from_bytes(full[0][1])
-        fecha_hasta = get_excel_fecha_hasta(msg)
+        fecha_gen = get_excel_fecha_generacion(msg)
 
-        if fecha_hasta is None:
-            log.info(f"  UID {uid.decode()}: sin 'Fecha hasta' legible, descartado")
+        if fecha_gen is None:
+            log.info(f"  UID {uid.decode()}: sin fecha legible, descartado")
             continue
 
-        log.info(f"  UID {uid.decode()}: Fecha hasta = {fecha_hasta}")
+        log.info(f"  UID {uid.decode()}: fecha generación Excel = {fecha_gen}")
 
-        # No considerar informes con fecha futura
-        if fecha_hasta > today_utc:
-            log.info(f"  UID {uid.decode()}: fecha futura ({fecha_hasta} > {today_utc}), descartado")
+        # Solo considerar emails cuya fecha de generación no supere hoy
+        if fecha_gen > today_utc:
+            log.info(f"  UID {uid.decode()}: fecha futura ({fecha_gen} > {today_utc}), descartado")
             continue
 
         # Quedarse con la fecha más reciente
-        if best_date is None or fecha_hasta > best_date:
-            best_date = fecha_hasta
+        if best_date is None or fecha_gen > best_date:
+            best_date = fecha_gen
             best_uid  = uid
 
     if best_uid is None:
@@ -303,11 +305,14 @@ def extract_data(xlsx_path: Path, cfg: dict) -> dict:
         log.warning(f"Usando hoja: '{sheet_name}'")
     ws = wb[sheet_name]
 
+    fecha_gen = detect_fecha_generacion(ws)
     fecha_hasta = detect_fecha_hasta(ws)
     if not fecha_hasta:
         log.error("No se detectó 'Fecha hasta'.")
         wb.close(); return {}
     log.info(f"Fecha hasta: {fecha_hasta.strftime('%d/%m/%Y')}")
+    if fecha_gen:
+        log.info(f"Fecha generación: {fecha_gen.strftime('%d/%m/%Y')}")
     cm_year, cm_month = comercial_month_from_date(fecha_hasta)
     log.info(f"Mes comercial: {cm_year}-{cm_month:02d}")
 
@@ -378,6 +383,7 @@ def extract_data(xlsx_path: Path, cfg: dict) -> dict:
     log.info(f"Úrsula Total={urs_total}")
 
     return {
+        "fecha_generacion":  fecha_gen.isoformat() if fecha_gen else None,
         "fecha_hasta":        fecha_hasta.isoformat(),
         "cm_year":            cm_year,
         "cm_month":           cm_month,
@@ -439,8 +445,10 @@ def update_json(result: dict):
     if result.get("ursula_bonos_cons")  is not None:
         existing["ursula"]["bonos"][key]["consumo"] = result["ursula_bonos_cons"]
 
-    # lastLoadDate debe reflejar la fecha real de datos ("Fecha hasta")
-    existing["lastLoadDate"] = result["fecha_hasta"]
+    # lastLoadDate debe reflejar el último día con datos reales.
+    # En estos informes "Fecha hasta" suele ser el fin del periodo comercial (p.ej. 25/04),
+    # aunque el Excel se haya generado el 26/03. Por eso usamos fecha_generacion.
+    existing["lastLoadDate"] = result.get("fecha_generacion") or result["fecha_hasta"]
     existing["lastRunTs"]    = datetime.now().isoformat()
 
     with open(JSON_OUT, "w", encoding="utf-8") as f:
@@ -562,8 +570,8 @@ def main():
     if result.get("cavero_bonos_cons"):  data_payload["cavero"]["bonos"][key]["consumo"] = result["cavero_bonos_cons"]
     if result.get("ursula_bonos_altas"): data_payload["ursula"]["bonos"][key]["altas"]   = result["ursula_bonos_altas"]
     if result.get("ursula_bonos_cons"):  data_payload["ursula"]["bonos"][key]["consumo"] = result["ursula_bonos_cons"]
-    # lastLoadDate debe reflejar la fecha real de datos ("Fecha hasta")
-    data_payload["lastLoadDate"] = result["fecha_hasta"]
+    # lastLoadDate debe reflejar el último día con datos reales
+    data_payload["lastLoadDate"] = result.get("fecha_generacion") or result["fecha_hasta"]
     data_payload["lastRunTs"]    = datetime.now(timezone.utc).isoformat()
 
     build_html(data_payload)
