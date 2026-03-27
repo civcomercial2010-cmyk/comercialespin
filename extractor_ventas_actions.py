@@ -94,37 +94,104 @@ def connect_gmail(cfg: dict) -> imaplib.IMAP4_SSL:
     log.info("Conexión IMAP establecida.")
     return conn
 
-def find_latest_email(conn, cfg) -> bytes | None:
+def get_excel_fecha_generacion(msg) -> date | None:
+    """
+    Descarga el Excel adjunto del mensaje en memoria y lee la fecha de
+    generación del informe (fila 2: 'Fecha: DD/MM/YY').
+    Devuelve un objeto date o None si no se puede leer.
+    """
+    nombre_cfg = "ventas por caja"
+    for part in msg.walk():
+        fn_raw = part.get_filename()
+        if not fn_raw: continue
+        fn = decode_header_value(fn_raw).strip().lower().replace(".xlmx", ".xlsx")
+        if not fn.endswith(".xlsx"): continue
+        if nombre_cfg not in fn: continue
+        try:
+            import io
+            data = part.get_payload(decode=True)
+            wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+            ws = wb.active
+            pat = re.compile(r'Fecha[: ]+(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})', re.IGNORECASE)
+            for row in ws.iter_rows(min_row=2, max_row=3, values_only=True):
+                for cell in row:
+                    if cell is None: continue
+                    m = pat.search(str(cell))
+                    if m:
+                        d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+                        if y < 100: y += 2000
+                        wb.close()
+                        return date(y, mo, d)
+            wb.close()
+        except Exception as e:
+            log.warning(f"No se pudo leer fecha del Excel: {e}")
+    return None
+
+
+def find_best_email(conn, cfg) -> bytes | None:
+    """
+    Busca entre los emails recientes el que tenga el Excel con la fecha de
+    generación MÁS RECIENTE sin superar la fecha de hoy (UTC).
+    Esto evita coger accidentalmente un email de un mes futuro.
+    """
     carpeta = cfg.get("carpeta_busqueda", "INBOX")
     conn.select(carpeta, readonly=True)
+
     criterios = []
     if cfg.get("asunto_contiene"):
         criterios.append(f'SUBJECT "{cfg["asunto_contiene"]}"')
     if cfg.get("remitente_contiene"):
         criterios.append(f'FROM "{cfg["remitente_contiene"]}"')
-    horas = int(cfg.get("buscar_ultimas_horas", 26))
-    desde = (datetime.now(timezone.utc) - timedelta(hours=horas)).strftime("%d-%b-%Y")
+    # Buscar últimos 60 días para tener suficiente histórico
+    desde = (datetime.now(timezone.utc) - timedelta(days=60)).strftime("%d-%b-%Y")
     criterios.append(f'SINCE {desde}')
     search_str = "(" + " ".join(criterios) + ")" if len(criterios) > 1 else criterios[0]
-    log.info(f"Buscando: {search_str}")
+    log.info(f"Buscando emails candidatos: {search_str}")
+
     _, data = conn.search(None, search_str)
     ids = data[0].split()
     if not ids:
         log.warning("No se encontraron emails.")
         return None
-    nombre_cfg = cfg.get("nombre_adjunto", "").lower().replace(".xlmx", ".xlsx")
-    for uid in reversed(ids):
+
+    log.info(f"  {len(ids)} email(s) candidato(s). Leyendo fechas de cada Excel...")
+
+    today_utc = datetime.now(timezone.utc).date()
+    best_uid  = None
+    best_date = None
+
+    for uid in ids:
         _, full = conn.fetch(uid, "(RFC822)")
         msg = email.message_from_bytes(full[0][1])
-        for part in msg.walk():
-            fn_raw = part.get_filename()
-            if not fn_raw: continue
-            fn = decode_header_value(fn_raw).strip().lower().replace(".xlmx", ".xlsx")
-            if not nombre_cfg or nombre_cfg in fn or fn in nombre_cfg:
-                log.info(f"Email encontrado UID {uid.decode()} con adjunto '{fn}'")
-                return uid
-    log.warning("Ningún email con el adjunto esperado.")
-    return None
+        fecha_gen = get_excel_fecha_generacion(msg)
+
+        if fecha_gen is None:
+            log.info(f"  UID {uid.decode()}: sin fecha legible, descartado")
+            continue
+
+        log.info(f"  UID {uid.decode()}: fecha generación Excel = {fecha_gen}")
+
+        # Solo considerar emails cuya fecha de generación no supere hoy
+        if fecha_gen > today_utc:
+            log.info(f"  UID {uid.decode()}: fecha futura ({fecha_gen} > {today_utc}), descartado")
+            continue
+
+        # Quedarse con la fecha más reciente
+        if best_date is None or fecha_gen > best_date:
+            best_date = fecha_gen
+            best_uid  = uid
+
+    if best_uid is None:
+        log.warning("Ningún email válido encontrado.")
+        return None
+
+    log.info(f"Email seleccionado: UID {best_uid.decode()} con fecha {best_date}")
+    return best_uid
+
+
+# Alias para compatibilidad con el resto del código
+def find_latest_email(conn, cfg) -> bytes | None:
+    return find_best_email(conn, cfg)
 
 def download_attachment(conn, uid, cfg, tmp_dir) -> Path | None:
     _, msg_data = conn.fetch(uid, "(RFC822)")
@@ -176,7 +243,7 @@ def detect_fecha_hasta(ws) -> date | None:
 
 def detect_fecha_generacion(ws) -> date | None:
     """Lee la fecha de generacion del informe (fila 2): 'Fecha: DD/MM/YY'"""
-    pat = re.compile(r'Fecha[:\s]+(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})', re.IGNORECASE)
+    pat = re.compile(r'Fecha[: ]+(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})', re.IGNORECASE)
     for row in ws.iter_rows(min_row=2, max_row=3, values_only=True):
         for cell in row:
             if cell is None: continue
