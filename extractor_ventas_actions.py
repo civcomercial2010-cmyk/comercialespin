@@ -296,6 +296,51 @@ def comercial_month_from_date(fecha_hasta: date) -> tuple[int, int]:
         return fecha_hasta.year + 1, 1
     return fecha_hasta.year, fecha_hasta.month + 1
 
+
+def parse_iso_date_only(s: str | None) -> date | None:
+    if not s:
+        return None
+    head = str(s).strip()[:10]
+    if len(head) < 10 or head[4] != "-" or head[7] != "-":
+        return None
+    try:
+        return date.fromisoformat(head)
+    except ValueError:
+        return None
+
+
+def commercial_month_start(cm_year: int, cm_month: int) -> date:
+    """Día civil de inicio del mes comercial (etiqueta 1–12): siempre el 26 del mes civil anterior."""
+    if cm_month == 1:
+        return date(cm_year - 1, 12, 26)
+    return date(cm_year, cm_month - 1, 26)
+
+
+def compute_last_load_date(result: dict) -> str:
+    """
+    Referencia para «días transcurridos» en el cuadro: el último día civil cubierto por el informe.
+    Toma el máximo entre fecha de generación y «Fecha hasta» (evita 25/03 si el periodo abril
+    empieza 26/03) y no deja la fecha por debajo del inicio del mes comercial del extracto.
+    Siempre YYYY-MM-DD (sin hora) para que el navegador no desplace el día por UTC.
+    """
+    fg = parse_iso_date_only(result.get("fecha_generacion"))
+    fh = parse_iso_date_only(result.get("fecha_hasta"))
+    candidates = [d for d in (fg, fh) if d is not None]
+    if not candidates:
+        chosen = date.today()
+        for key in ("fecha_hasta", "fecha_generacion"):
+            p = parse_iso_date_only(result.get(key))
+            if p:
+                chosen = p
+                break
+    else:
+        chosen = max(candidates)
+    cm_start = commercial_month_start(result["cm_year"], result["cm_month"])
+    if chosen < cm_start:
+        chosen = cm_start
+    return chosen.isoformat()
+
+
 def extract_data(xlsx_path: Path, cfg: dict) -> dict:
     log.info(f"Procesando: {xlsx_path.name}")
     wb = openpyxl.load_workbook(xlsx_path, read_only=True, data_only=True)
@@ -445,10 +490,8 @@ def update_json(result: dict):
     if result.get("ursula_bonos_cons")  is not None:
         existing["ursula"]["bonos"][key]["consumo"] = result["ursula_bonos_cons"]
 
-    # lastLoadDate debe reflejar el último día con datos reales.
-    # En estos informes "Fecha hasta" suele ser el fin del periodo comercial (p.ej. 25/04),
-    # aunque el Excel se haya generado el 26/03. Por eso usamos fecha_generacion.
-    existing["lastLoadDate"] = result.get("fecha_generacion") or result["fecha_hasta"]
+    # lastLoadDate: ver compute_last_load_date (máx. generación / Fecha hasta + piso mes comercial).
+    existing["lastLoadDate"] = compute_last_load_date(result)
     existing["lastRunTs"]    = datetime.now().isoformat()
 
     with open(JSON_OUT, "w", encoding="utf-8") as f:
@@ -589,8 +632,7 @@ def main():
     if result.get("cavero_bonos_cons"):  data_payload["cavero"]["bonos"][key]["consumo"] = result["cavero_bonos_cons"]
     if result.get("ursula_bonos_altas"): data_payload["ursula"]["bonos"][key]["altas"]   = result["ursula_bonos_altas"]
     if result.get("ursula_bonos_cons"):  data_payload["ursula"]["bonos"][key]["consumo"] = result["ursula_bonos_cons"]
-    # lastLoadDate debe reflejar el último día con datos reales
-    data_payload["lastLoadDate"] = result.get("fecha_generacion") or result["fecha_hasta"]
+    data_payload["lastLoadDate"] = compute_last_load_date(result)
     data_payload["lastRunTs"]    = datetime.now(timezone.utc).isoformat()
 
     build_html(data_payload)

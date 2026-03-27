@@ -716,8 +716,15 @@ function countWork(from,to){
 function parseLastLoadDateLocal(raw){
   if(!raw) return null;
   const s = String(raw).trim();
-  // yyyy-mm-dd o ISO
-  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  // ISO con hora/Z: usar calendario local del instante (evita quedarse en el día UTC del prefijo).
+  if(/\dT\d/.test(s) || s.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(s)){
+    const d = new Date(s);
+    if(!isNaN(d.getTime())){
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0);
+    }
+  }
+  // yyyy-mm-dd (solo fecha)
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:\D|$)/);
   if(iso){
     const d = new Date(parseInt(iso[1]), parseInt(iso[2])-1, parseInt(iso[3]), 12, 0, 0);
     return isNaN(d.getTime()) ? null : d;
