@@ -25,7 +25,14 @@ jobs:
           python-version: '3.12'
 
       - name: Instalar openpyxl
-        run: pip install openpyxl
+        run: pip install openpyxl --upgrade --no-cache-dir
+```
+
+Guarda con **Commit changes** y luego **Run workflow**.
+
+Pero también necesito entender por qué el log sigue mostrando el código antiguo. Ejecuta esto en la terminal del repo:
+```
+findstr /n "Buscando emails candidatos" extractor_ventas_actions.py
 
       - name: Ejecutar extractor de ventas
         env:
