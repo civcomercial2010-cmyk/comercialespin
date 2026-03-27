@@ -1,0 +1,44 @@
+name: Actualizar cuadro de mando
+
+on:
+  schedule:
+    # 20:15 hora España (peninsular) = 18:15 UTC en invierno / 19:15 UTC en verano
+    # Usamos 18:15 UTC para que funcione en invierno; en verano correrá a las 20:15 CEST
+    - cron: '15 18 * * 1-5'   # lunes a viernes
+  workflow_dispatch:           # permite ejecutarlo manualmente desde GitHub
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write          # necesario para hacer git push
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Instalar Python y dependencias
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar openpyxl
+        run: pip install openpyxl
+
+      - name: Ejecutar extractor de ventas
+        env:
+          GMAIL_USER:     ${{ secrets.GMAIL_USER }}
+          GMAIL_PASSWORD: ${{ secrets.GMAIL_PASSWORD }}
+          ASUNTO_FILTRO:  ${{ secrets.ASUNTO_FILTRO }}
+          REMITENTE:      ${{ secrets.REMITENTE }}
+        run: python extractor_ventas_actions.py
+
+      - name: Commit y push si hay cambios
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json cuadro_mando_hipopotamo.html
+          git diff --staged --quiet || git commit -m "datos $(date '+%Y-%m') — actualización automática"
+          git push
