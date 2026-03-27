@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
     inputs:
       force_run:
-        description: "Forzar ejecución aunque no sean las 20:30 (Europe/Madrid)"
-        required: true
-        default: "false"
+        description: "Reservado (la ejecución manual ya corre siempre el extractor)"
+        required: false
+        default: "true"
 
 jobs:
   actualizar:
@@ -36,26 +36,27 @@ jobs:
       - name: Instalar dependencias
         run: pip install openpyxl
 
-      - name: Comprobar hora España (20:30)
+      - name: Comprobar hora España (ventana ~20:30)
         id: hora
         env:
           TZ: Europe/Madrid
         run: |
-          H=$(date +%H)
-          M=$(date +%M)
-          echo "Hora local (Europe/Madrid): $H:$M"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force_run }}" = "true" ]; then
-            echo "Ejecución manual forzada: se ejecutará aunque no sean las 20:30."
+          HM=$(date +%H%M)
+          echo "Hora local (Europe/Madrid): $(date '+%H:%M') (HM=$HM)"
+          # Ejecución manual: siempre actualiza (el usuario ha pulsado "Run workflow")
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Ejecución manual: se ejecuta el extractor."
             echo "run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [ "$H" = "20" ] && [ "$M" = "30" ]; then
+          # Programado: ventana 20:26–20:39 para tolerar colas de GitHub (antes solo minuto 30 exacto)
+          if [ "$HM" -ge 2026 ] && [ "$HM" -le 2039 ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Ejecutar extractor (solo 20:30)
+      - name: Ejecutar extractor
         if: steps.hora.outputs.run == 'true'
         env:
           TZ: Europe/Madrid
@@ -65,7 +66,7 @@ jobs:
           REMITENTE:      ${{ secrets.REMITENTE }}
         run: python extractor_ventas_actions.py
 
-      - name: Commit y push si hay cambios (solo 20:30)
+      - name: Commit y push si hay cambios
         if: steps.hora.outputs.run == 'true'
         run: |
           git config user.name  "github-actions[bot]"

@@ -35,3 +35,10 @@ Si Git avisa de cambios locales que entran en conflicto con el remoto, resuelve 
 ---
 
 Archivos como `__pycache__/` o `*.log` están en `.gitignore` para no ensuciar commits ni el historial.
+
+## Actualización automática desde Gmail (Actions)
+
+- El workflow **Actualizar cuadro de mando** está programado **de lunes a viernes** (no sábado ni domingo). Si el informe solo llega un fin de semana, no habrá ejecución automática hasta el siguiente día laborable salvo que lances el workflow a mano.
+- Si el correo llegó **después** de la ventana ~20:30 (España) de ese día, el job ya habrá corrido con el Excel anterior; en ese caso usa **Run workflow** en GitHub (pestaña *Actions*) para procesar de inmediato.
+- Revisa en *Actions* el último run: si el paso del extractor no se ejecutó o falló (IMAP, adjunto, secrets `GMAIL_*`, `ASUNTO_FILTRO`, `REMITENTE`), el `data.json` no cambiará.
+
