@@ -641,6 +641,33 @@ html, body {
 <script>
 'use strict';
 /* __DATOS_INYECTADOS__ */
+  (function(){
+    var _d = {"cavero": {"monthly": {"2026": [null, null, 83409.88, 3398.76, null, null, null, null, null, null, null, null]}, "industria": {"2026-03": 7799.36}, "distribuidores": {}, "bonos": {"2026-04": {"consumo": 1909.31}}}, "ursula": {"monthly": {"2026": [null, null, 32518.32, 1898.21, null, null, null, null, null, null, null, null]}, "bonos": {"2026-04": {"altas": 500.0, "consumo": 1240.98}}}, "lastLoadDate": "2026-04-25", "lastRunTs": "2026-03-27T10:33:17.005622+00:00"};
+    try {
+      var ls = JSON.parse(localStorage.getItem('hipopotamo_v2') || '{}');
+      ['cavero','ursula'].forEach(function(p){
+        if(!_d[p]) return;
+        ls[p] = ls[p] || {};
+        if(_d[p].monthly){
+          ls[p].monthly = ls[p].monthly || {};
+          Object.entries(_d[p].monthly).forEach(function(e){
+            var yr=e[0], arr=e[1];
+            ls[p].monthly[yr] = ls[p].monthly[yr] || Array(12).fill(null);
+            arr.forEach(function(v,i){ if(v!==null) ls[p].monthly[yr][i]=v; });
+          });
+        }
+        if(_d[p].industria)      ls[p].industria      = Object.assign(ls[p].industria||{},      _d[p].industria);
+        if(_d[p].distribuidores) ls[p].distribuidores = Object.assign(ls[p].distribuidores||{}, _d[p].distribuidores);
+        if(_d[p].bonos)          ls[p].bonos          = Object.assign(ls[p].bonos||{},          _d[p].bonos);
+      });
+      if(_d.lastLoadDate){
+        var rd=new Date(_d.lastLoadDate), ld=ls.lastLoadDate?new Date(ls.lastLoadDate):null;
+        if(!ld||rd>ld) ls.lastLoadDate=_d.lastLoadDate;
+      }
+      ls.lastRunTs = _d.lastRunTs || new Date().toISOString();
+      localStorage.setItem('hipopotamo_v2', JSON.stringify(ls));
+    } catch(e) { console.warn('Inyeccion datos:', e); }
+  })();
 const MONTHS_ES    = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const LS_KEY = 'hipopotamo_v2';
