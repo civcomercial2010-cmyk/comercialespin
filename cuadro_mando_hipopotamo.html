@@ -800,6 +800,16 @@ function parseLastLoadDateLocal(raw){
   }
   return null;
 }
+/** No contar días laborables más allá del cierre del periodo ni de «hoy» (evita 19/19 si lastLoadDate viene de un JSON antiguo o erróneo). */
+function capRefDateForElapsed(refDate, end, today){
+  if(!refDate || isNaN(refDate.getTime())) return refDate;
+  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 0, 0);
+  let r = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate(), 12, 0, 0);
+  const e = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 12, 0, 0);
+  if(r > e) r = e;
+  if(r > t) r = t;
+  return r;
+}
 function getComercialMonth(today){
   const day=today.getDate(); let year=today.getFullYear(), month=today.getMonth();
   if(day>=26){month+=1;if(month>11){month=0;year++;}}
@@ -820,6 +830,7 @@ function getComercialMonth(today){
   } else {
     refDate=new Date(today); refDate.setHours(12,0,0,0);
   }
+  refDate = capRefDateForElapsed(refDate, end, today);
 
   const elapsedDays=refDate<start?0:refDate>end?totalDays:countWork(start,refDate);
   return{year,month,start,end,totalDays,elapsedDays};
@@ -1791,6 +1802,7 @@ function getComercialMonthByIndex(year, month) {
   } else {
     refDate=new Date(TODAY); refDate.setHours(12,0,0,0);
   }
+  refDate = capRefDateForElapsed(refDate, end, TODAY);
 
   let elapsedDays;
   if(refDate < start)    elapsedDays = 0;

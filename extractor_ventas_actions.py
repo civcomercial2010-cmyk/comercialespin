@@ -21,6 +21,7 @@ import tempfile
 import shutil
 from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 try:
     import openpyxl
@@ -367,25 +368,41 @@ def commercial_month_start(cm_year: int, cm_month: int) -> date:
     return date(cm_year, cm_month - 1, 26)
 
 
+def _today_madrid() -> date:
+    """Fecha civil hoy en España (cuadro manda comercial Zaragoza)."""
+    return datetime.now(ZoneInfo("Europe/Madrid")).date()
+
+
 def compute_last_load_date(result: dict) -> str:
     """
-    Referencia para «días transcurridos» en el cuadro: el último día civil cubierto por el informe.
-    Toma el máximo entre fecha de generación y «Fecha hasta» (evita 25/03 si el periodo abril
-    empieza 26/03) y no deja la fecha por debajo del inicio del mes comercial del extracto.
-    Siempre YYYY-MM-DD (sin hora) para que el navegador no desplace el día por UTC.
+    Referencia para «días transcurridos»: último día civil con datos reales del informe.
+
+    - Se usa **fecha de generación** del Excel (cuándo se confeccionó / hasta qué día van los datos).
+    - **No** usar «Fecha hasta» como sustituto principal: suele ser el **fin teórico** del mes
+      comercial (p. ej. 25/04) y haría 19/19 desde el primer día del periodo.
+    - Si no hay generación, se cae a Fecha hasta, se limita a **hoy (Madrid)** y se aplica piso
+      al inicio del mes comercial del extracto (evita 0 días cuando la generación lleva un día
+      de retraso respecto al arranque 26).
+    Siempre YYYY-MM-DD (sin hora).
     """
     fg = parse_iso_date_only(result.get("fecha_generacion"))
     fh = parse_iso_date_only(result.get("fecha_hasta"))
-    candidates = [d for d in (fg, fh) if d is not None]
-    if not candidates:
-        chosen = date.today()
+    if fg is not None:
+        chosen = fg
+    elif fh is not None:
+        chosen = fh
+    else:
+        chosen = _today_madrid()
         for key in ("fecha_hasta", "fecha_generacion"):
             p = parse_iso_date_only(result.get(key))
             if p:
                 chosen = p
                 break
-    else:
-        chosen = max(candidates)
+
+    today = _today_madrid()
+    if chosen > today:
+        chosen = today
+
     cm_start = commercial_month_start(result["cm_year"], result["cm_month"])
     if chosen < cm_start:
         chosen = cm_start
@@ -568,7 +585,7 @@ def update_json(result: dict):
     if result.get("ursula_bonos_cons")  is not None:
         existing["ursula"]["bonos"][key]["consumo"] = result["ursula_bonos_cons"]
 
-    # lastLoadDate: ver compute_last_load_date (máx. generación / Fecha hasta + piso mes comercial).
+    # lastLoadDate: ver compute_last_load_date (generación; piso inicio mes comercial; cap a hoy Madrid).
     existing["lastLoadDate"] = compute_last_load_date(result)
     existing["lastRunTs"]    = datetime.now().isoformat()
 
