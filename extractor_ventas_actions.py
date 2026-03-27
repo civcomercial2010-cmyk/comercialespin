@@ -422,21 +422,29 @@ def extract_data(xlsx_path: Path, cfg: dict) -> dict:
             log.info(f"Total Úrsula: ventas={importe:.2f} bonos altas={at:.2f} consumo={ct:.2f}")
             continue
 
-    # Total distribuidores: muchos informes llevan el importe en una fila resumen al final
-    # (col. A "Distribuidor(es)" / "Total distribuidores…"), no como líneas 26 + grupo DISTRIBU.
+    # Total distribuidores: fila resumen al final — a veces el texto va en col. A, a veces solo
+    # "DISTRIB…" en col. C (3), con importe en base imponible (no como líneas 26 + detalle).
     cav_dist_footer = None
     for row in ws.iter_rows(min_row=data_start, values_only=True):
         if not any(c is not None for c in row):
             continue
         c0 = str(row[0]).strip() if row[0] is not None else ""
-        if not c0 or c0 == vend_c:
+        if c0 == vend_c:
             continue
-        if "vendedor" in c0.lower():
+        if re.match(r"total\s+vendedor\s+" + re.escape(vend_c), c0, re.IGNORECASE):
             continue
-        if re.search(r"(?i)(?:^|\s)(?:ventas\s+)?(?:total\s+)?distribuidor", c0):
-            v = get_float(row, col_importe)
-            if v > 0:
-                cav_dist_footer = v
+        if re.match(r"total\s+vendedor\s+" + re.escape(vend_u), c0, re.IGNORECASE):
+            continue
+        v = None
+        if len(row) > 2 and row[2] is not None:
+            c2 = str(row[2]).strip().upper()
+            if "DISTRIB" in c2 or c2 == "DIS V2":
+                v = get_float(row, col_importe)
+        if (v is None or v <= 0) and c0:
+            if re.search(r"(?i)(?:^|\s)(?:ventas\s+)?(?:total\s+)?distribuidor", c0) and "vendedor" not in c0.lower():
+                v = get_float(row, col_importe)
+        if v is not None and v > 0:
+            cav_dist_footer = v
     if cav_dist_footer is not None:
         log.info(f"Distribuidores desde fila resumen: {cav_dist_footer:.2f} (sustituye suma detalle {cav_dist:.2f})")
         cav_dist = cav_dist_footer
