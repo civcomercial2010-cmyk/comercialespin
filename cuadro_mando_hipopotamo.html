@@ -943,9 +943,13 @@ async function tryLoadDataJson(){
       }
     }
 
-    // No machacar fecha local si ya existe (dato ERP/manual guardado por usuario).
-    if(remote.lastLoadDate && !ls.lastLoadDate){
-      ls.lastLoadDate = remote.lastLoadDate;
+    // Mantener lastLoadDate actualizado sin retroceder.
+    if(remote.lastLoadDate){
+      const rd = parseLastLoadDateLocal(remote.lastLoadDate);
+      const ld = parseLastLoadDateLocal(ls.lastLoadDate);
+      if(!ld || (rd && rd > ld)){
+        ls.lastLoadDate = `${rd.getFullYear()}-${String(rd.getMonth()+1).padStart(2,'0')}-${String(rd.getDate()).padStart(2,'0')}`;
+      }
     }
 
     // lastRunTs — útil para mostrar cuándo corrió Actions
@@ -1430,7 +1434,8 @@ function saveERPData(){
   if(r.bonos.u.altas!==null)   ls.ursula.bonos[key].altas=r.bonos.u.altas;
   if(r.bonos.u.consumo!==null) ls.ursula.bonos[key].consumo=r.bonos.u.consumo;
   const srcDate=new Date(cm.srcYear<100?2000+cm.srcYear:cm.srcYear,cm.srcMon,cm.day,12,0,0);
-  ls.lastLoadDate=srcDate.toISOString();
+  // Guardar en formato local estable (YYYY-MM-DD) para evitar desfases por zona horaria.
+  ls.lastLoadDate = `${srcDate.getFullYear()}-${String(srcDate.getMonth()+1).padStart(2,'0')}-${String(srcDate.getDate()).padStart(2,'0')}`;
   saveLS(ls); parsedERP=null;
   document.getElementById('erp-save-row').classList.add('hidden');
   showERPAlert('Datos de '+MONTHS_ES[cm.month]+' '+cm.year+' guardados correctamente.','success');
@@ -1661,19 +1666,8 @@ function initActiveMonthSel(){
     opt.textContent = `${MONTHS_ES[m]} 2026`;
     sel.appendChild(opt);
   }
-  // Set to "current" commercial month based on lastLoadDate (si existe),
-  // no en base al día de hoy. Así el mes activo y el contador de días
-  // quedan alineados con el dataset descargado.
-  const ls = loadLS();
-  let base = TODAY;
-  if(ls.lastLoadDate){
-    const parts = ls.lastLoadDate.substring(0,10).split('-');
-    if(parts.length===3){
-      const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]), 12,0,0);
-      if(!isNaN(d.getTime())) base = d;
-    }
-  }
-  const cur = getComercialMonth(base);
+  // Siempre abrir en el mes comercial en curso (según la fecha de hoy).
+  const cur = getComercialMonth(TODAY);
   activeCM = cur;
   sel.value = dateKey(cur.year, cur.month);
   // Show "current month" label
