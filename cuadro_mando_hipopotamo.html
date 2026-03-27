@@ -289,7 +289,7 @@ html, body {
 <header class="app-header">
   <div class="app-header-left">
     <div class="app-logo">
-      <img src="./logo_huella.png" alt="Hipopótamo" width="32" height="32" style="display:block; border-radius:6px; object-fit:contain;">
+      <img src="./logo_huella.jpg" alt="Hipopótamo" width="32" height="32" style="display:block; border-radius:6px; object-fit:contain;">
     </div>
     <div>
       <div class="app-title">Hipopótamo Pinturas y Decoración S.L.</div>
@@ -751,6 +751,85 @@ function proy(real,elapsed,total){ if(!real||!elapsed||!total)return null; retur
 
 function loadLS(){ try{return JSON.parse(localStorage.getItem(LS_KEY)||'{}');}catch{return{};} }
 function saveLS(d){ localStorage.setItem(LS_KEY,JSON.stringify(d)); }
+
+const GH_SYNC_CFG = {
+  owner: 'civcomercial2010-cmyk',
+  repo: 'comercialespin',
+  branch: 'main',
+  path: 'data.json',
+  tokenKey: 'hipopotamo_gh_token'
+};
+
+function cloneObj(o){ return JSON.parse(JSON.stringify(o||{})); }
+function normMonthly(src){
+  const out={};
+  Object.entries(src||{}).forEach(([yr,arr])=>{
+    if(!Array.isArray(arr)) return;
+    out[String(yr)] = Array.from({length:12},(_,i)=>arr[i]??null);
+  });
+  return out;
+}
+function buildDataJsonFromLS(){
+  const ls=loadLS();
+  return {
+    cavero: {
+      monthly: normMonthly(ls?.cavero?.monthly),
+      industria: cloneObj(ls?.cavero?.industria),
+      distribuidores: cloneObj(ls?.cavero?.distribuidores),
+      bonos: cloneObj(ls?.cavero?.bonos)
+    },
+    ursula: {
+      monthly: normMonthly(ls?.ursula?.monthly),
+      bonos: cloneObj(ls?.ursula?.bonos)
+    },
+    lastLoadDate: ls?.lastLoadDate || null,
+    lastRunTs: new Date().toISOString()
+  };
+}
+function toB64Utf8(s){ return btoa(unescape(encodeURIComponent(s))); }
+async function syncDataJsonToGitHub(){
+  let token = localStorage.getItem(GH_SYNC_CFG.tokenKey);
+  if(!token){
+    token = prompt('Para guardar también en data.json de GitHub, pega un token con permisos de escritura de Contents (repo).');
+    if(!token) return {ok:false, skipped:true, reason:'no-token'};
+    localStorage.setItem(GH_SYNC_CFG.tokenKey, token.trim());
+  }
+  token = token.trim();
+
+  const api = `https://api.github.com/repos/${GH_SYNC_CFG.owner}/${GH_SYNC_CFG.repo}/contents/${GH_SYNC_CFG.path}`;
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/vnd.github+json',
+    'Content-Type': 'application/json'
+  };
+
+  let sha = null;
+  const getResp = await fetch(`${api}?ref=${GH_SYNC_CFG.branch}`, {headers});
+  if(getResp.ok){
+    const meta = await getResp.json();
+    sha = meta.sha;
+  } else if(getResp.status !== 404){
+    if(getResp.status===401 || getResp.status===403) localStorage.removeItem(GH_SYNC_CFG.tokenKey);
+    const txt = await getResp.text();
+    return {ok:false, skipped:false, reason:`get-${getResp.status}`, details:txt};
+  }
+
+  const payload = buildDataJsonFromLS();
+  const body = {
+    message: `sync data.json desde ERP (${new Date().toISOString()})`,
+    content: toB64Utf8(JSON.stringify(payload, null, 2) + '\n'),
+    branch: GH_SYNC_CFG.branch
+  };
+  if(sha) body.sha = sha;
+
+  const putResp = await fetch(api, {method:'PUT', headers, body:JSON.stringify(body)});
+  if(!putResp.ok){
+    if(putResp.status===401 || putResp.status===403) localStorage.removeItem(GH_SYNC_CFG.tokenKey);
+    const txt = await putResp.text();
+    return {ok:false, skipped:false, reason:`put-${putResp.status}`, details:txt};
+  }
+  return {ok:true};
+}
 
 /* ── CARGA AUTOMÁTICA DE data.json (generado por el script Python) ──
    El HTML intenta leer data.json desde su misma carpeta cada vez que se abre.
@@ -1323,6 +1402,16 @@ function saveERPData(){
   const data=getMerged();
   renderPanel('cavero',data,activeCM); renderPanel('ursula',data,activeCM);
   chartsRendered={cavero:true,ursula:true};
+
+  syncDataJsonToGitHub().then(res=>{
+    if(res.ok){
+      showERPAlert('Datos guardados en el cuadro y sincronizados en data.json de GitHub.','success');
+    } else if(!res.skipped){
+      showERPAlert('Datos guardados en el cuadro, pero no se pudo sincronizar data.json en GitHub.','warning');
+    }
+  }).catch(()=>{
+    showERPAlert('Datos guardados en el cuadro, pero falló la sincronización con GitHub.','warning');
+  });
 }
 
 
@@ -1347,6 +1436,16 @@ function saveTarjetaManual(){
   const data=getMerged();
   renderPanel('cavero',data,activeCM); renderPanel('ursula',data,activeCM);
   chartsRendered={cavero:true,ursula:true};
+
+  syncDataJsonToGitHub().then(res=>{
+    if(res.ok){
+      showTarjAlert(`Bonos de ${MONTHS_ES[mon-1]} ${yr} guardados y sincronizados en data.json.`,'success');
+    } else if(!res.skipped){
+      showTarjAlert(`Bonos guardados, pero no se pudo sincronizar data.json en GitHub.`,'warning');
+    }
+  }).catch(()=>{
+    showTarjAlert(`Bonos guardados, pero falló la sincronización con GitHub.`,'warning');
+  });
 }
 
 function showTarjAlert(msg,type){
