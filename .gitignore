@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+.venv/
+venv/
+env/
+
+# Logs y temporales locales (no forman parte del cuadro publicado)
+*.log
+.DS_Store
+Thumbs.db
+
+# Secretos / config local (nunca subir credenciales)
+.env
+.env.*
+*.local.json
