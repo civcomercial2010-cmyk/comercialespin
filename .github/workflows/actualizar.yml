@@ -2,25 +2,25 @@ name: Actualizar cuadro de mando
 
 on:
   schedule:
-    # 20:15 hora España (peninsular) = 18:15 UTC en invierno / 19:15 UTC en verano
-    # Usamos 18:15 UTC para que funcione en invierno; en verano correrá a las 20:15 CEST
-    - cron: '15 18 * * 1-5'   # lunes a viernes
-  workflow_dispatch:           # permite ejecutarlo manualmente desde GitHub
+    - cron: '15 18 * * 1-5'
+  workflow_dispatch:
 
 jobs:
   actualizar:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     permissions:
-      contents: write          # necesario para hacer git push
+      contents: write
 
     steps:
       - name: Clonar repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Instalar Python y dependencias
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.12'
 
