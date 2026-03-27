@@ -95,7 +95,15 @@ def connect_gmail(cfg: dict) -> imaplib.IMAP4_SSL:
     log.info("Conexión IMAP establecida.")
     return conn
 
-def get_excel_fecha_generacion(msg) -> date | None:
+def _excel_primary_sheet(wb, cfg: dict | None):
+    """Misma hoja que extract_data (p. ej. VENTAS); si no existe, la activa."""
+    name = (cfg or {}).get("hoja_excel", "VENTAS")
+    if name in wb.sheetnames:
+        return wb[name]
+    return wb.active
+
+
+def get_excel_fecha_generacion(msg, cfg: dict | None = None) -> date | None:
     """
     Descarga el Excel adjunto del mensaje en memoria y lee la fecha de
     generación del informe (fila 2: 'Fecha: DD/MM/YY').
@@ -112,9 +120,9 @@ def get_excel_fecha_generacion(msg) -> date | None:
             import io
             data = part.get_payload(decode=True)
             wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
-            ws = wb.active
+            ws = _excel_primary_sheet(wb, cfg)
             pat = re.compile(r'Fecha[: ]+(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})', re.IGNORECASE)
-            for row in ws.iter_rows(min_row=2, max_row=3, values_only=True):
+            for row in ws.iter_rows(min_row=2, max_row=6, values_only=True):
                 for cell in row:
                     if cell is None: continue
                     m = pat.search(str(cell))
@@ -129,7 +137,7 @@ def get_excel_fecha_generacion(msg) -> date | None:
     return None
 
 
-def get_excel_fecha_hasta(msg) -> date | None:
+def get_excel_fecha_hasta(msg, cfg: dict | None = None) -> date | None:
     """
     Descarga el Excel adjunto del mensaje en memoria y lee la 'Fecha hasta'
     (la fecha real de los datos, que es la que debe mostrar el cuadro).
@@ -148,7 +156,7 @@ def get_excel_fecha_hasta(msg) -> date | None:
             import io
             data = part.get_payload(decode=True)
             wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
-            ws = wb.active
+            ws = _excel_primary_sheet(wb, cfg)
             d = detect_fecha_hasta(ws)
             wb.close()
             return d
@@ -196,7 +204,7 @@ def find_best_email(conn, cfg) -> bytes | None:
     for uid in ids:
         _, full = conn.fetch(uid, "(RFC822)")
         msg = email.message_from_bytes(full[0][1])
-        fecha_gen = get_excel_fecha_generacion(msg)
+        fecha_gen = get_excel_fecha_generacion(msg, cfg)
 
         if fecha_gen is None:
             log.info(f"  UID {uid.decode()}: sin fecha legible, descartado")
@@ -209,10 +217,13 @@ def find_best_email(conn, cfg) -> bytes | None:
             log.info(f"  UID {uid.decode()}: fecha futura ({fecha_gen} > {today_utc}), descartado")
             continue
 
-        # Quedarse con la fecha más reciente
+        # Fecha más reciente en el Excel; si hay empate, mensaje IMAP con UID más alto (más reciente).
+        uidn = int(uid.decode())
         if best_date is None or fecha_gen > best_date:
             best_date = fecha_gen
             best_uid  = uid
+        elif fecha_gen == best_date and best_uid is not None and uidn > int(best_uid.decode()):
+            best_uid = uid
 
     if best_uid is None:
         log.warning("Ningún email válido encontrado.")
