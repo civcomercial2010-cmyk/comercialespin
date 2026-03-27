@@ -174,6 +174,21 @@ def detect_fecha_hasta(ws) -> date | None:
                 except: pass
     return None
 
+def detect_fecha_generacion(ws) -> date | None:
+    """Lee la fecha de generacion del informe (fila 2): 'Fecha: DD/MM/YY'"""
+    pat = re.compile(r'Fecha[:\s]+(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})', re.IGNORECASE)
+    for row in ws.iter_rows(min_row=2, max_row=3, values_only=True):
+        for cell in row:
+            if cell is None: continue
+            m = pat.search(str(cell))
+            if m:
+                d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+                if y < 100: y += 2000
+                try: return date(y, mo, d)
+                except: pass
+    return None
+
+
 def comercial_month_from_date(fecha_hasta: date) -> tuple[int, int]:
     if fecha_hasta.day <= 25:
         return fecha_hasta.year, fecha_hasta.month
@@ -326,7 +341,7 @@ def update_json(result: dict):
     if result.get("ursula_bonos_cons")  is not None:
         existing["ursula"]["bonos"][key]["consumo"] = result["ursula_bonos_cons"]
 
-    existing["lastLoadDate"] = result["fecha_hasta"]
+    existing["lastLoadDate"] = result.get("fecha_generacion", result["fecha_hasta"])
     existing["lastRunTs"]    = datetime.now().isoformat()
 
     with open(JSON_OUT, "w", encoding="utf-8") as f:
@@ -448,7 +463,7 @@ def main():
     if result.get("cavero_bonos_cons"):  data_payload["cavero"]["bonos"][key]["consumo"] = result["cavero_bonos_cons"]
     if result.get("ursula_bonos_altas"): data_payload["ursula"]["bonos"][key]["altas"]   = result["ursula_bonos_altas"]
     if result.get("ursula_bonos_cons"):  data_payload["ursula"]["bonos"][key]["consumo"] = result["ursula_bonos_cons"]
-    data_payload["lastLoadDate"] = result["fecha_hasta"]
+    data_payload["lastLoadDate"] = result.get("fecha_generacion", result["fecha_hasta"])
     data_payload["lastRunTs"]    = datetime.now(timezone.utc).isoformat()
 
     build_html(data_payload)
