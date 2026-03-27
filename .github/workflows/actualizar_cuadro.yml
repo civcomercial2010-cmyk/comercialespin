@@ -49,8 +49,9 @@ jobs:
             echo "run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # Programado: ventana 20:26–20:39 para tolerar colas de GitHub (antes solo minuto 30 exacto)
-          if [ "$HM" -ge 2026 ] && [ "$HM" -le 2039 ]; then
+          # Programado: ventana 20:00–21:59 (Madrid). La cola de GitHub puede retrasar el job
+          # ~30 min (p. ej. paso "Comprobar hora" a las 21:00); ventanas cortas dejan run=false.
+          if [ "$HM" -ge 2000 ] && [ "$HM" -le 2159 ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"

@@ -41,4 +41,5 @@ Archivos como `__pycache__/` o `*.log` están en `.gitignore` para no ensuciar c
 - El workflow **Actualizar cuadro de mando** está programado **de lunes a viernes** (no sábado ni domingo). Si el informe solo llega un fin de semana, no habrá ejecución automática hasta el siguiente día laborable salvo que lances el workflow a mano.
 - Si el correo llegó **después** de la ventana ~20:30 (España) de ese día, el job ya habrá corrido con el Excel anterior; en ese caso usa **Run workflow** en GitHub (pestaña *Actions*) para procesar de inmediato.
 - Revisa en *Actions* el último run: si el paso del extractor no se ejecutó o falló (IMAP, adjunto, secrets `GMAIL_*`, `ASUNTO_FILTRO`, `REMITENTE`), el `data.json` no cambiará.
+- El job programado solo continúa si, al ejecutarse el paso de hora en **Europe/Madrid**, la hora cae en la ventana **20:00–21:59** (para tolerar retrasos de la cola de GitHub). Si el log muestra p. ej. `21:00` y antes la ventana era demasiado estrecha, el extractor no llegaba a lanzarse.
 
