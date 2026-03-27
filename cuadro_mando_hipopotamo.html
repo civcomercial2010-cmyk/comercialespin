@@ -380,13 +380,14 @@ html, body {
   </div>
 
   <div class="section-card">
-    <div class="section-head"><span class="section-title">Evolución mensual 2026</span></div>
+    <div class="section-head"><span class="section-title">Evolución mensual 2025 / 2026</span></div>
     <div class="chart-legend">
-      <div class="leg"><div class="leg-bar" style="background:#1a56e8;"></div><span>Venta real</span></div>
-      <div class="leg"><div class="leg-dash" style="border-color:#c47a0a;"></div><span>Objetivo</span></div>
+      <div class="leg"><div class="leg-bar" style="background:rgba(26,86,232,.42);"></div><span>Venta 2025</span></div>
+      <div class="leg"><div class="leg-bar" style="background:#1a56e8;"></div><span>Venta real 2026</span></div>
+      <div class="leg"><div class="leg-dash" style="border-color:#c47a0a;"></div><span>Objetivo 2026</span></div>
       <div class="leg"><div class="leg-bar" style="background:rgba(13,159,110,.5);"></div><span>Proyección mes actual</span></div>
     </div>
-    <div class="chart-wrap" style="height:260px;"><canvas id="chart-2026-cavero"></canvas></div>
+    <div class="chart-wrap" style="height:280px;"><canvas id="chart-2026-cavero"></canvas></div>
   </div>
 
   <div class="section-card">
@@ -484,13 +485,14 @@ html, body {
   </div>
 
   <div class="section-card">
-    <div class="section-head"><span class="section-title">Evolución mensual 2026</span></div>
+    <div class="section-head"><span class="section-title">Evolución mensual 2025 / 2026</span></div>
     <div class="chart-legend">
-      <div class="leg"><div class="leg-bar" style="background:#0d9f6e;"></div><span>Venta real</span></div>
-      <div class="leg"><div class="leg-dash" style="border-color:#c47a0a;"></div><span>Objetivo</span></div>
+      <div class="leg"><div class="leg-bar" style="background:rgba(13,159,110,.42);"></div><span>Venta 2025</span></div>
+      <div class="leg"><div class="leg-bar" style="background:#0d9f6e;"></div><span>Venta real 2026</span></div>
+      <div class="leg"><div class="leg-dash" style="border-color:#c47a0a;"></div><span>Objetivo 2026</span></div>
       <div class="leg"><div class="leg-bar" style="background:rgba(13,159,110,.35);"></div><span>Proyección mes actual</span></div>
     </div>
-    <div class="chart-wrap" style="height:260px;"><canvas id="chart-2026-ursula"></canvas></div>
+    <div class="chart-wrap" style="height:280px;"><canvas id="chart-2026-ursula"></canvas></div>
   </div>
 
   <div class="section-card">
@@ -1076,7 +1078,9 @@ const CC={
   cavero:'#1a56e8',ursula:'#0d9f6e',obj:'#c47a0a',
   proy:'rgba(13,159,110,0.45)',red:'#d93025',
   annC:['#b0b0b0','#85b7eb','#4a7ee0','#d93025'],
-  annU:['#b0b0b0','#6ec9a0','#2ea87a','#d93025']
+  annU:['#b0b0b0','#6ec9a0','#2ea87a','#d93025'],
+  y2025cavero:'rgba(26,86,232,0.42)',
+  y2025ursula:'rgba(13,159,110,0.42)'
 };
 function scales(){
   return{
@@ -1089,18 +1093,22 @@ function buildChart2026(person,data,cm){
   const id='chart-2026-'+person; dc(id);
   const canvas=document.getElementById(id); if(!canvas)return;
   const budget=data[person].budget2026;
-  const raw=data[person].monthly[2026]||Array(12).fill(null);
-  const real=raw.map((v,m)=>(m>cm.month?null:v));
+  const raw26=data[person].monthly[2026]||Array(12).fill(null);
+  const raw25=data[person].monthly[2025]||Array(12).fill(null);
+  const real26=raw26.map((v,m)=>(m>cm.month?null:v));
+  const real25=raw25.map((v,m)=>(m>cm.month?null:v));
   const proyArr=Array(12).fill(null);
-  const realCur=raw[cm.month];
+  const realCur=raw26[cm.month];
   if(realCur!==null&&realCur!==undefined&&cm.elapsedDays>0&&cm.month<=11) proyArr[cm.month]=proy(realCur,cm.elapsedDays,cm.totalDays);
+  const col25=person==='cavero'?CC.y2025cavero:CC.y2025ursula;
 
   charts[id]=new Chart(canvas.getContext('2d'),{
     type:'bar',
     data:{labels:MONTHS_SHORT,datasets:[
-      {label:'Venta real',data:real,backgroundColor:CC[person],borderRadius:4,order:2},
-      {label:'Proyección',data:proyArr,backgroundColor:CC.proy,borderRadius:4,order:3},
-      {label:'Objetivo',data:budget,type:'line',borderColor:CC.obj,borderWidth:2.5,
+      {label:'Venta 2025',data:real25,backgroundColor:col25,borderRadius:4,order:4},
+      {label:'Venta real 2026',data:real26,backgroundColor:CC[person],borderRadius:4,order:3},
+      {label:'Proyección 2026',data:proyArr,backgroundColor:CC.proy,borderRadius:4,order:2},
+      {label:'Objetivo 2026',data:budget,type:'line',borderColor:CC.obj,borderWidth:2.5,
        borderDash:[6,4],pointRadius:0,pointHoverRadius:5,tension:0,fill:false,order:1}
     ]},
     options:{
@@ -1111,12 +1119,12 @@ function buildChart2026(person,data,cm){
           mode:'index',intersect:false,
           titleFont:{size:14,family:'Outfit, sans-serif'},bodyFont:{size:14,family:'Outfit, sans-serif'},
           callbacks:{
-            title:items=>`${MONTHS_ES[items[0].dataIndex]} 2026`,
+            title:items=>MONTHS_ES[items[0].dataIndex],
             label:item=>{ const v=item.raw; if(v===null||v===undefined)return null; return` ${item.dataset.label}: ${fmtEur(v)}`; }
           }
         }
       },
-      scales:scales()
+      scales:(()=>{ const sc=scales(); return { x:{...sc.x,categoryPercentage:0.68,barPercentage:0.88}, y:sc.y }; })()
     }
   });
 }
