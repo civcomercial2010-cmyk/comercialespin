@@ -63,7 +63,7 @@ def load_config() -> dict:
         "asunto_contiene":    os.environ.get("ASUNTO_FILTRO",  "Ventas por caja"),
         "remitente_contiene": os.environ.get("REMITENTE",      "reportes@hipopotamo.com"),
         "nombre_adjunto":     "Ventas por caja.xlsx",
-        "buscar_ultimas_horas": 26,
+        "buscar_ultimas_horas": 96,
         "hoja_excel":         "VENTAS",
         "vendedor_cavero":    "26",
         "vendedor_ursula":    "61",
@@ -103,38 +103,76 @@ def _excel_primary_sheet(wb, cfg: dict | None):
     return wb.active
 
 
-def get_excel_fecha_generacion(msg, cfg: dict | None = None) -> date | None:
+def _parse_generacion_datetime_from_sheet(ws) -> datetime | None:
     """
-    Descarga el Excel adjunto del mensaje en memoria y lee la fecha de
-    generación del informe (fila 2: 'Fecha: DD/MM/YY').
-    Devuelve un objeto date o None si no se puede leer.
+    Obtiene fecha/hora de generación del informe:
+    - Celda tipo datetime (Excel) o date
+    - Texto 'Fecha: 27/03/26 Hora: 20:21:00' o solo fecha
     """
+    pat_full = re.compile(
+        r"Fecha[: \t]+(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})(?:\s+Hora:\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?",
+        re.IGNORECASE,
+    )
+    for row in ws.iter_rows(min_row=2, max_row=15, values_only=True):
+        for cell in row:
+            if cell is None:
+                continue
+            if isinstance(cell, datetime):
+                c = cell
+                if c.tzinfo is not None:
+                    c = c.astimezone(timezone.utc).replace(tzinfo=None)
+                return c
+            if isinstance(cell, date):
+                return datetime(cell.year, cell.month, cell.day, 0, 0, 0)
+            s = str(cell).strip()
+            m = pat_full.search(s)
+            if m:
+                d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+                if y < 100:
+                    y += 2000
+                hh = int(m.group(4) or 0)
+                mm = int(m.group(5) or 0)
+                ss = int(m.group(6) or 0)
+                return datetime(y, mo, d, hh, mm, ss)
+            m2 = re.search(r"Fecha[: \t]+(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})", s, re.I)
+            if m2:
+                d, mo, y = int(m2.group(1)), int(m2.group(2)), int(m2.group(3))
+                if y < 100:
+                    y += 2000
+                return datetime(y, mo, d, 0, 0, 0)
+    return None
+
+
+def get_excel_generacion_datetime(msg, cfg: dict | None = None) -> datetime | None:
+    """datetime naive de generación del informe, o None."""
     nombre_cfg = "ventas por caja"
     for part in msg.walk():
         fn_raw = part.get_filename()
-        if not fn_raw: continue
+        if not fn_raw:
+            continue
         fn = decode_header_value(fn_raw).strip().lower().replace(".xlmx", ".xlsx")
-        if not fn.endswith(".xlsx"): continue
-        if nombre_cfg not in fn: continue
+        if not fn.endswith(".xlsx"):
+            continue
+        if nombre_cfg not in fn:
+            continue
         try:
             import io
             data = part.get_payload(decode=True)
             wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
             ws = _excel_primary_sheet(wb, cfg)
-            pat = re.compile(r'Fecha[: ]+(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})', re.IGNORECASE)
-            for row in ws.iter_rows(min_row=2, max_row=6, values_only=True):
-                for cell in row:
-                    if cell is None: continue
-                    m = pat.search(str(cell))
-                    if m:
-                        d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
-                        if y < 100: y += 2000
-                        wb.close()
-                        return date(y, mo, d)
+            gen_dt = _parse_generacion_datetime_from_sheet(ws)
             wb.close()
+            if gen_dt:
+                return gen_dt
         except Exception as e:
             log.warning(f"No se pudo leer fecha del Excel: {e}")
     return None
+
+
+def get_excel_fecha_generacion(msg, cfg: dict | None = None) -> date | None:
+    """Solo la parte fecha (compatibilidad)."""
+    dt = get_excel_generacion_datetime(msg, cfg)
+    return dt.date() if dt else None
 
 
 def get_excel_fecha_hasta(msg, cfg: dict | None = None) -> date | None:
@@ -198,38 +236,40 @@ def find_best_email(conn, cfg) -> bytes | None:
     log.info(f"  {len(ids)} email(s) candidato(s). Leyendo fechas de cada Excel...")
 
     today_utc = datetime.now(timezone.utc).date()
-    best_uid  = None
-    best_date = None
+    best_uid = None
+    best_gen: datetime | None = None
 
     for uid in ids:
         _, full = conn.fetch(uid, "(RFC822)")
         msg = email.message_from_bytes(full[0][1])
-        fecha_gen = get_excel_fecha_generacion(msg, cfg)
+        gen_dt = get_excel_generacion_datetime(msg, cfg)
 
-        if fecha_gen is None:
-            log.info(f"  UID {uid.decode()}: sin fecha legible, descartado")
+        if gen_dt is None:
+            log.info(f"  UID {uid.decode()}: sin fecha/hora de generación legible, descartado")
             continue
 
-        log.info(f"  UID {uid.decode()}: fecha generación Excel = {fecha_gen}")
+        fecha_gen = gen_dt.date()
+        log.info(f"  UID {uid.decode()}: generación informe (Excel) = {gen_dt}")
 
-        # Solo considerar emails cuya fecha de generación no supere hoy
         if fecha_gen > today_utc:
             log.info(f"  UID {uid.decode()}: fecha futura ({fecha_gen} > {today_utc}), descartado")
             continue
 
-        # Fecha más reciente en el Excel; si hay empate, mensaje IMAP con UID más alto (más reciente).
         uidn = int(uid.decode())
-        if best_date is None or fecha_gen > best_date:
-            best_date = fecha_gen
-            best_uid  = uid
-        elif fecha_gen == best_date and best_uid is not None and uidn > int(best_uid.decode()):
+        # Orden: instante de generación más reciente; empate en día/hora → UID IMAP mayor (correo más nuevo).
+        if (
+            best_gen is None
+            or gen_dt > best_gen
+            or (gen_dt == best_gen and best_uid is not None and uidn > int(best_uid.decode()))
+        ):
+            best_gen = gen_dt
             best_uid = uid
 
     if best_uid is None:
         log.warning("Ningún email válido encontrado.")
         return None
 
-    log.info(f"Email seleccionado: UID {best_uid.decode()} con fecha {best_date}")
+    log.info(f"Email seleccionado: UID {best_uid.decode()} generación {best_gen}")
     return best_uid
 
 
