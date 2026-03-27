@@ -1,0 +1,52 @@
+name: Actualizar cuadro de mando
+
+on:
+  schedule:
+    # Disparamos dos veces para cubrir CET/CEST; filtramos a las 20:30 Europe/Madrid
+    - cron: '30 18 * * 1-5'
+    - cron: '30 19 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependencias
+        run: pip install openpyxl
+
+      - name: Ejecutar solo a las 20:30 (hora España)
+        env:
+          TZ: Europe/Madrid
+          GMAIL_USER:     ${{ secrets.GMAIL_USER }}
+          GMAIL_PASSWORD: ${{ secrets.GMAIL_PASSWORD }}
+          ASUNTO_FILTRO:  ${{ secrets.ASUNTO_FILTRO }}
+          REMITENTE:      ${{ secrets.REMITENTE }}
+        run: |
+          H=$(date +%H)
+          M=$(date +%M)
+          echo "Hora local (Europe/Madrid): $H:$M"
+          if [ "$H" != "20" ] || [ "$M" != "30" ]; then
+            echo "No es 20:30 en España; salgo sin hacer nada."
+            exit 0
+          fi
+          python extractor_ventas_actions.py
+
+      - name: Commit y push si hay cambios
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json cuadro_mando_hipopotamo.html
+          git diff --staged --quiet || git commit -m "datos $(date '+%Y-%m') — actualización automática"
+          git push
+
