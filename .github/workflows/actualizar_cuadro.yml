@@ -5,9 +5,6 @@ env:
 
 on:
   schedule:
-    ...
-on:
-  schedule:
     # Disparamos dos veces para cubrir CET/CEST; filtramos a las 20:30 Europe/Madrid
     - cron: '30 18 * * 1-5'
     - cron: '30 19 * * 1-5'
@@ -54,5 +51,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data.json cuadro_mando_hipopotamo.html
           git diff --staged --quiet || git commit -m "datos $(date '+%Y-%m') — actualización automática"
+          git pull --rebase
           git push
-
