@@ -1416,6 +1416,21 @@ function parseERPData(){
     }
   }
 
+  // Total distribuidores: priorizar fila resumen al final (col. A "Distribuidor…"), habitual en el Excel
+  let cavDistFooter=null;
+  for(let i=lines.length-1;i>=0;i--){
+    const cols=lines[i].split('\t').map(c=>c.trim());
+    const a=(cols[0]||'').trim();
+    if(!a||/vendedor/i.test(a)) continue;
+    if(/(?:^|\s)(?:ventas\s+)?(?:total\s+)?distribuidor/i.test(a)){
+      const raw=cols[colImporte]||'';
+      const s=raw.replace(/\s/g,'').replace(/\./g,'').replace(',','.');
+      const v=parseFloat(s);
+      if(!isNaN(v)&&v>0){ cavDistFooter=Math.round(v*100)/100; break; }
+    }
+  }
+  if(cavDistFooter!=null) cavDist=cavDistFooter;
+
   parsedERP={
     comercialMonth,
     cavProf:cavProf>0?Math.round(cavProf):null,

@@ -422,6 +422,25 @@ def extract_data(xlsx_path: Path, cfg: dict) -> dict:
             log.info(f"Total Úrsula: ventas={importe:.2f} bonos altas={at:.2f} consumo={ct:.2f}")
             continue
 
+    # Total distribuidores: muchos informes llevan el importe en una fila resumen al final
+    # (col. A "Distribuidor(es)" / "Total distribuidores…"), no como líneas 26 + grupo DISTRIBU.
+    cav_dist_footer = None
+    for row in ws.iter_rows(min_row=data_start, values_only=True):
+        if not any(c is not None for c in row):
+            continue
+        c0 = str(row[0]).strip() if row[0] is not None else ""
+        if not c0 or c0 == vend_c:
+            continue
+        if "vendedor" in c0.lower():
+            continue
+        if re.search(r"(?i)(?:^|\s)(?:ventas\s+)?(?:total\s+)?distribuidor", c0):
+            v = get_float(row, col_importe)
+            if v > 0:
+                cav_dist_footer = v
+    if cav_dist_footer is not None:
+        log.info(f"Distribuidores desde fila resumen: {cav_dist_footer:.2f} (sustituye suma detalle {cav_dist:.2f})")
+        cav_dist = cav_dist_footer
+
     wb.close()
 
     log.info(f"Cavero Prof={cav_prof:.2f} Dist={cav_dist:.2f} Ind={cav_ind:.2f}")
