@@ -11,6 +11,7 @@ Este archivo va en la raíz del repositorio 'comercialespin'.
 import imaplib
 import email
 import email.header
+import email.utils
 import json
 import os
 import re
@@ -128,11 +129,39 @@ def get_excel_fecha_generacion(msg) -> date | None:
     return None
 
 
+def get_excel_fecha_hasta(msg) -> date | None:
+    """
+    Descarga el Excel adjunto del mensaje en memoria y lee la 'Fecha hasta'
+    (la fecha real de los datos, que es la que debe mostrar el cuadro).
+    """
+    nombre_cfg = "ventas por caja"
+    for part in msg.walk():
+        fn_raw = part.get_filename()
+        if not fn_raw:
+            continue
+        fn = decode_header_value(fn_raw).strip().lower().replace(".xlmx", ".xlsx")
+        if not fn.endswith(".xlsx"):
+            continue
+        if nombre_cfg not in fn:
+            continue
+        try:
+            import io
+            data = part.get_payload(decode=True)
+            wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+            ws = wb.active
+            d = detect_fecha_hasta(ws)
+            wb.close()
+            return d
+        except Exception as e:
+            log.warning(f"No se pudo leer 'Fecha hasta' del Excel: {e}")
+            return None
+    return None
+
+
 def find_best_email(conn, cfg) -> bytes | None:
     """
-    Busca entre los emails recientes el que tenga el Excel con la fecha de
-    generación MÁS RECIENTE sin superar la fecha de hoy (UTC).
-    Esto evita coger accidentalmente un email de un mes futuro.
+    Busca entre los emails recientes el que tenga el Excel con la 'Fecha hasta'
+    MÁS RECIENTE sin superar la fecha de hoy (UTC).
     """
     carpeta = cfg.get("carpeta_busqueda", "INBOX")
     conn.select(carpeta, readonly=True)
@@ -142,8 +171,10 @@ def find_best_email(conn, cfg) -> bytes | None:
         criterios.append(f'SUBJECT "{cfg["asunto_contiene"]}"')
     if cfg.get("remitente_contiene"):
         criterios.append(f'FROM "{cfg["remitente_contiene"]}"')
-    # Buscar últimos 60 días para tener suficiente histórico
-    desde = (datetime.now(timezone.utc) - timedelta(days=60)).strftime("%d-%b-%Y")
+    # SINCE filtra por FECHA (no hora). Usamos buscar_ultimas_horas + 48h de holgura
+    # para evitar que entren informes viejos y, aun así, tolerar el redondeo a día.
+    horas = int(cfg.get("buscar_ultimas_horas", 26))
+    desde = (datetime.now(timezone.utc) - timedelta(hours=horas + 48)).strftime("%d-%b-%Y")
     criterios.append(f'SINCE {desde}')
     search_str = "(" + " ".join(criterios) + ")" if len(criterios) > 1 else criterios[0]
     log.info(f"Buscando emails candidatos: {search_str}")
@@ -154,7 +185,7 @@ def find_best_email(conn, cfg) -> bytes | None:
         log.warning("No se encontraron emails.")
         return None
 
-    log.info(f"  {len(ids)} email(s) candidato(s). Leyendo fechas de cada Excel...")
+    log.info(f"  {len(ids)} email(s) candidato(s). Leyendo 'Fecha hasta' de cada Excel...")
 
     today_utc = datetime.now(timezone.utc).date()
     best_uid  = None
@@ -163,22 +194,22 @@ def find_best_email(conn, cfg) -> bytes | None:
     for uid in ids:
         _, full = conn.fetch(uid, "(RFC822)")
         msg = email.message_from_bytes(full[0][1])
-        fecha_gen = get_excel_fecha_generacion(msg)
+        fecha_hasta = get_excel_fecha_hasta(msg)
 
-        if fecha_gen is None:
-            log.info(f"  UID {uid.decode()}: sin fecha legible, descartado")
+        if fecha_hasta is None:
+            log.info(f"  UID {uid.decode()}: sin 'Fecha hasta' legible, descartado")
             continue
 
-        log.info(f"  UID {uid.decode()}: fecha generación Excel = {fecha_gen}")
+        log.info(f"  UID {uid.decode()}: Fecha hasta = {fecha_hasta}")
 
-        # Solo considerar emails cuya fecha de generación no supere hoy
-        if fecha_gen > today_utc:
-            log.info(f"  UID {uid.decode()}: fecha futura ({fecha_gen} > {today_utc}), descartado")
+        # No considerar informes con fecha futura
+        if fecha_hasta > today_utc:
+            log.info(f"  UID {uid.decode()}: fecha futura ({fecha_hasta} > {today_utc}), descartado")
             continue
 
         # Quedarse con la fecha más reciente
-        if best_date is None or fecha_gen > best_date:
-            best_date = fecha_gen
+        if best_date is None or fecha_hasta > best_date:
+            best_date = fecha_hasta
             best_uid  = uid
 
     if best_uid is None:
@@ -408,7 +439,8 @@ def update_json(result: dict):
     if result.get("ursula_bonos_cons")  is not None:
         existing["ursula"]["bonos"][key]["consumo"] = result["ursula_bonos_cons"]
 
-    existing["lastLoadDate"] = result.get("fecha_generacion", result["fecha_hasta"])
+    # lastLoadDate debe reflejar la fecha real de datos ("Fecha hasta")
+    existing["lastLoadDate"] = result["fecha_hasta"]
     existing["lastRunTs"]    = datetime.now().isoformat()
 
     with open(JSON_OUT, "w", encoding="utf-8") as f:
@@ -530,7 +562,8 @@ def main():
     if result.get("cavero_bonos_cons"):  data_payload["cavero"]["bonos"][key]["consumo"] = result["cavero_bonos_cons"]
     if result.get("ursula_bonos_altas"): data_payload["ursula"]["bonos"][key]["altas"]   = result["ursula_bonos_altas"]
     if result.get("ursula_bonos_cons"):  data_payload["ursula"]["bonos"][key]["consumo"] = result["ursula_bonos_cons"]
-    data_payload["lastLoadDate"] = result.get("fecha_generacion", result["fecha_hasta"])
+    # lastLoadDate debe reflejar la fecha real de datos ("Fecha hasta")
+    data_payload["lastLoadDate"] = result["fecha_hasta"]
     data_payload["lastRunTs"]    = datetime.now(timezone.utc).isoformat()
 
     build_html(data_payload)
