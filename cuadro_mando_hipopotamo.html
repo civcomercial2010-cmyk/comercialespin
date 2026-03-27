@@ -932,13 +932,16 @@ async function tryLoadDataJson(){
       }
     }
 
-    // lastLoadDate — sólo actualiza si la del json es más reciente
+    // lastLoadDate — SIEMPRE debe reflejar la fecha del dataset remoto.
+    // Si en el navegador quedase una fecha posterior (por caché o pruebas),
+    // se verían días trabajados "de más" aunque no haya datos reales.
     if(remote.lastLoadDate){
-      const remoteDate = new Date(remote.lastLoadDate);
-      const localDate  = ls.lastLoadDate ? new Date(ls.lastLoadDate) : null;
-      if(!localDate || remoteDate > localDate){
-        ls.lastLoadDate = remote.lastLoadDate;
-      }
+      ls.lastLoadDate = remote.lastLoadDate;
+    }
+
+    // lastRunTs — útil para mostrar cuándo corrió Actions
+    if(remote.lastRunTs){
+      ls.lastRunTs = remote.lastRunTs;
     }
 
     saveLS(ls);
