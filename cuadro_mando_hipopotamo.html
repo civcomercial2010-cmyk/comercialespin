@@ -750,7 +750,7 @@ const HC = {
 
 const FESTIVOS = [
   '2026-01-01','2026-01-06','2026-03-05','2026-04-02',
-  '2026-04-03','2026-04-23','2026-05-01','2026-10-12',
+  '2026-04-03','2026-05-01','2026-10-12',
   '2026-11-01','2026-12-06','2026-12-08','2026-12-25'
 ].map(s=>{ const d=new Date(s+'T12:00:00'); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); });
 
@@ -768,8 +768,22 @@ function getComercialMonth(today){
   const pY=month===0?year-1:year, pM=month===0?11:month-1;
   const start=new Date(pY,pM,26,12,0,0), end=new Date(year,month,25,12,0,0);
   const totalDays=countWork(start,end);
-  const tn=new Date(today); tn.setHours(12,0,0,0);
-  const elapsedDays=tn<start?0:tn>end?totalDays:countWork(start,tn);
+
+  // elapsedDays: usar la fecha_hasta del último Excel cargado (lastLoadDate),
+  // NO el día de hoy. Así el cuadro muestra exactamente los días con datos reales.
+  // Parseamos la fecha como LOCAL (no UTC) para evitar desfases de zona horaria.
+  const ls=loadLS();
+  let refDate;
+  if(ls.lastLoadDate){
+    // lastLoadDate viene como "2026-03-25" (fecha hasta del Excel)
+    // Parsear como fecha local para evitar que UTC medianoche dé el día anterior
+    const parts=ls.lastLoadDate.substring(0,10).split('-');
+    refDate=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]),12,0,0);
+  } else {
+    refDate=new Date(today); refDate.setHours(12,0,0,0);
+  }
+
+  const elapsedDays=refDate<start?0:refDate>end?totalDays:countWork(start,refDate);
   return{year,month,start,end,totalDays,elapsedDays};
 }
 
@@ -1498,18 +1512,26 @@ function showBudgetAlert(msg,type){
 let activeCM = null;
 
 function getComercialMonthByIndex(year, month) {
-  // Build a comercialMonth for any given year+month (0-indexed)
   const pY = month===0 ? year-1 : year;
   const pM = month===0 ? 11 : month-1;
   const start = new Date(pY, pM, 26, 12,0,0);
   const end   = new Date(year, month, 25, 12,0,0);
   const totalDays = countWork(start, end);
-  // elapsedDays: only meaningful for current month; for past = totalDays, future = 0
-  const tn = new Date(TODAY); tn.setHours(12,0,0,0);
+
+  // Usar lastLoadDate (fecha_hasta del Excel) como referencia, parseada como fecha local
+  const ls = loadLS();
+  let refDate;
+  if(ls.lastLoadDate){
+    const parts=ls.lastLoadDate.substring(0,10).split('-');
+    refDate=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]),12,0,0);
+  } else {
+    refDate=new Date(TODAY); refDate.setHours(12,0,0,0);
+  }
+
   let elapsedDays;
-  if(tn < start) elapsedDays = 0;
-  else if(tn > end) elapsedDays = totalDays;
-  else elapsedDays = countWork(start, tn);
+  if(refDate < start)    elapsedDays = 0;
+  else if(refDate > end) elapsedDays = totalDays;
+  else                   elapsedDays = countWork(start, refDate);
   return {year, month, start, end, totalDays, elapsedDays};
 }
 
