@@ -204,6 +204,7 @@ def extract_data(xlsx_path: Path, cfg: dict) -> dict:
 
     for idx, row in enumerate(ws.iter_rows(max_row=120, values_only=True), start=1):
         r = [str(c).strip().lower() if c is not None else '' for c in row]
+        if not r: continue
         if r[0] == 'vendedor' and 'grupo' in r:
             header_row    = idx
             col_grupo     = r.index('grupo') + 1
