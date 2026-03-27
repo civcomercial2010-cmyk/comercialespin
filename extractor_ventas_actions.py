@@ -484,24 +484,43 @@ def build_html(data_payload: dict):
         "          Object.entries(_d[p].monthly).forEach(function(e){",
         "            var yr=e[0], arr=e[1];",
         "            ls[p].monthly[yr] = ls[p].monthly[yr] || Array(12).fill(null);",
-        "            arr.forEach(function(v,i){ if(v!==null) ls[p].monthly[yr][i]=v; });",
+        "            arr.forEach(function(v,i){",
+        "              if(v===null || v===undefined) return;",
+        "              if(ls[p].monthly[yr][i]===null || ls[p].monthly[yr][i]===undefined) ls[p].monthly[yr][i]=v;",
+        "            });",
         "          });",
         "        }",
-        "        if(_d[p].industria)      ls[p].industria      = Object.assign(ls[p].industria||{},      _d[p].industria);",
-        "        if(_d[p].distribuidores) ls[p].distribuidores = Object.assign(ls[p].distribuidores||{}, _d[p].distribuidores);",
-        "        if(_d[p].bonos)          ls[p].bonos          = Object.assign(ls[p].bonos||{},          _d[p].bonos);",
+        "        if(_d[p].industria){",
+        "          ls[p].industria = ls[p].industria || {};",
+        "          Object.entries(_d[p].industria).forEach(function(e){ var k=e[0],v=e[1]; if(ls[p].industria[k]===null || ls[p].industria[k]===undefined) ls[p].industria[k]=v; });",
+        "        }",
+        "        if(_d[p].distribuidores){",
+        "          ls[p].distribuidores = ls[p].distribuidores || {};",
+        "          Object.entries(_d[p].distribuidores).forEach(function(e){ var k=e[0],v=e[1]; if(ls[p].distribuidores[k]===null || ls[p].distribuidores[k]===undefined) ls[p].distribuidores[k]=v; });",
+        "        }",
+        "        if(_d[p].bonos){",
+        "          ls[p].bonos = ls[p].bonos || {};",
+        "          Object.entries(_d[p].bonos).forEach(function(e){",
+        "            var k=e[0], obj=e[1]||{};",
+        "            ls[p].bonos[k] = ls[p].bonos[k] || {};",
+        "            Object.entries(obj).forEach(function(be){ var bk=be[0],bv=be[1]; if(ls[p].bonos[k][bk]===null || ls[p].bonos[k][bk]===undefined) ls[p].bonos[k][bk]=bv; });",
+        "          });",
+        "        }",
         "      });",
-        "      if(_d.lastLoadDate){",
-        "        var rd=new Date(_d.lastLoadDate), ld=ls.lastLoadDate?new Date(ls.lastLoadDate):null;",
-        "        if(!ld||rd>ld) ls.lastLoadDate=_d.lastLoadDate;",
-        "      }",
+        "      if(_d.lastLoadDate && !ls.lastLoadDate) ls.lastLoadDate=_d.lastLoadDate;",
         "      ls.lastRunTs = _d.lastRunTs || new Date().toISOString();",
         "      localStorage.setItem('hipopotamo_v2', JSON.stringify(ls));",
         "    } catch(e) { console.warn('Inyeccion datos:', e); }",
         "  })();",
     ]
     injection = chr(10).join(lines)
-    HTML_DEST.write_text(html.replace(_DATA_MARKER, injection, 1), encoding="utf-8")
+    # Reemplazar TODO el bloque inyectado para evitar acumulación de IIFEs.
+    block_rx = re.compile(r"/\* __DATOS_INYECTADOS__ \*/[\s\S]*?(?=const MONTHS_ES\s*=)")
+    if block_rx.search(html):
+        updated = block_rx.sub(injection + "\n", html, count=1)
+    else:
+        updated = html.replace(_DATA_MARKER, injection, 1)
+    HTML_DEST.write_text(updated, encoding="utf-8")
     log.info(f"HTML actualizado con datos inyectados.")
 
 # ──────────────────────────────────────────────────────────
