@@ -326,7 +326,7 @@ html, body {
   </div>
 
   <div class="section-card">
-    <div class="section-head"><span class="section-title">Mes actual</span><span class="section-badge" id="dev-badge-cavero">—</span></div>
+    <div class="section-head"><span class="section-title">Mes actual</span></div>
     <div class="kpi-grid kpi-g4">
       <div class="kpi-card accent-blue">
         <div class="kpi-label">Venta real</div>
@@ -401,7 +401,7 @@ html, body {
   </div>
 
   <div class="section-card">
-    <div class="section-head"><span class="section-title">Histórico anual desde 2023</span></div>
+    <div class="section-head"><span class="section-title">Histórico anual</span></div>
     <div class="annual-strip" id="annual-strip-cavero"></div>
     <div class="chart-legend">
       <div class="leg"><div class="leg-line" style="background:#b0b0b0;"></div><span>2023</span></div>
@@ -437,7 +437,7 @@ html, body {
   </div>
 
   <div class="section-card">
-    <div class="section-head"><span class="section-title">Mes actual</span><span class="section-badge" id="dev-badge-ursula">—</span></div>
+    <div class="section-head"><span class="section-title">Mes actual</span></div>
     <div class="kpi-grid kpi-g4">
       <div class="kpi-card accent-green">
         <div class="kpi-label">Venta real</div>
@@ -505,7 +505,7 @@ html, body {
   </div>
 
   <div class="section-card">
-    <div class="section-head"><span class="section-title">Histórico anual desde 2023</span></div>
+    <div class="section-head"><span class="section-title">Histórico anual</span></div>
     <div class="annual-strip" id="annual-strip-ursula"></div>
     <div class="chart-legend">
       <div class="leg"><div class="leg-line" style="background:#b0b0b0;"></div><span>2023</span></div>
@@ -545,7 +545,7 @@ html, body {
         </div>
       </div>
       <div style="margin-top:12px;font-size:13px;color:var(--txt3);">
-        Cambiar este selector actualiza inmediatamente los KPIs, barras de progreso y datos del mes actual en ambas pestañas de comercial. Los gráficos históricos no cambian.
+        Cambiar este selector actualiza los KPIs, barras de progreso, gráficos y acumulados YTD hasta ese mes comercial (sin meses posteriores en 2026 ni en las series comparadas).
       </div>
     </div>
 
@@ -1039,6 +1039,36 @@ function getMonthlyWithProjection(person,data,cm){
   return monthly;
 }
 
+/** Oculta meses civiles posteriores al mes comercial seleccionado (p. ej. sin Feb–Dic 2026 si el mes es Enero 2026). Rolling y evolución 2026. */
+function applyTimelineCapToMonthly(monthly,cm){
+  const out={};
+  for(const yr of [2023,2024,2025,2026]){
+    const arr=[...(monthly[yr]||Array(12).fill(null))];
+    for(let m=0;m<12;m++){
+      if(yr>cm.year||(yr===cm.year&&m>cm.month)) arr[m]=null;
+    }
+    out[yr]=arr;
+  }
+  return out;
+}
+
+/** En cada año, solo hasta el mismo índice de mes (Ene…mes seleccionado): histórico anual y YTD comparables. */
+function applyAnnualDisplayCapToMonthly(monthly,cm){
+  const out={};
+  for(const yr of [2023,2024,2025,2026]){
+    const arr=[...(monthly[yr]||Array(12).fill(null))];
+    for(let m=cm.month+1;m<12;m++) arr[m]=null;
+    out[yr]=arr;
+  }
+  return out;
+}
+
+function sumYtd(monthly,yr,endM){
+  let s=0;
+  for(let m=0;m<=endM;m++) s+=(monthly[yr]?.[m]??0);
+  return s;
+}
+
 const charts={};
 function dc(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
 const CC={
@@ -1059,10 +1089,11 @@ function buildChart2026(person,data,cm){
   const id='chart-2026-'+person; dc(id);
   const canvas=document.getElementById(id); if(!canvas)return;
   const budget=data[person].budget2026;
-  const real=data[person].monthly[2026]||Array(12).fill(null);
+  const raw=data[person].monthly[2026]||Array(12).fill(null);
+  const real=raw.map((v,m)=>(m>cm.month?null:v));
   const proyArr=Array(12).fill(null);
-  const realCur=real[cm.month];
-  if(realCur!==null&&cm.elapsedDays>0) proyArr[cm.month]=proy(realCur,cm.elapsedDays,cm.totalDays);
+  const realCur=raw[cm.month];
+  if(realCur!==null&&realCur!==undefined&&cm.elapsedDays>0&&cm.month<=11) proyArr[cm.month]=proy(realCur,cm.elapsedDays,cm.totalDays);
 
   charts[id]=new Chart(canvas.getContext('2d'),{
     type:'bar',
@@ -1093,14 +1124,17 @@ function buildChart2026(person,data,cm){
 function buildChartRolling(person,data,cm){
   const id='chart-rolling-'+person; dc(id);
   const canvas=document.getElementById(id); if(!canvas)return;
-  const projData = { ...data, [person]: { ...data[person], monthly: getMonthlyWithProjection(person,data,cm) } };
+  const projected=getMonthlyWithProjection(person,data,cm);
+  const cappedMonthly=applyTimelineCapToMonthly(projected,cm);
+  const projData={...data,[person]:{...data[person],monthly:cappedMonthly}};
   const r=rolling12(person,projData);
   const labels=r.map(x=>`${MONTHS_SHORT[x.month]} ${x.year}`);
   const vals=r.map(x=>x.value);
-  const last=r[r.length-1];
-  const prev=r.find(x=>x.year===last.year-1&&x.month===last.month);
-  document.getElementById('rolling-actual-'+person).textContent=fmtEur(last?.value);
-  if(prev){
+  const inRange=r.filter(x=>x.year<cm.year||(x.year===cm.year&&x.month<=cm.month));
+  const last=inRange.length?inRange[inRange.length-1]:null;
+  const prev=last?r.find(x=>x.year===last.year-1&&x.month===last.month):null;
+  document.getElementById('rolling-actual-'+person).textContent=last?fmtEur(last.value):'—';
+  if(last&&prev){
     const delta=last.value-prev.value;
     document.getElementById('rolling-prev-'+person).textContent=fmtEur(prev.value);
     const dEl=document.getElementById('rolling-delta-'+person);
@@ -1132,7 +1166,8 @@ function buildChartAnnual(person,data,cm){
   const id='chart-annual-'+person; dc(id);
   const canvas=document.getElementById(id); if(!canvas)return;
   const palette=person==='cavero'?CC.annC:CC.annU;
-  const monthly = getMonthlyWithProjection(person,data,cm);
+  const projected=getMonthlyWithProjection(person,data,cm);
+  const monthly=applyAnnualDisplayCapToMonthly(projected,cm);
   const datasets=[2023,2024,2025,2026].map((yr,i)=>({
     label:String(yr),data:monthly[yr]||Array(12).fill(null),
     borderColor:palette[i],backgroundColor:'transparent',
@@ -1154,13 +1189,14 @@ function buildChartAnnual(person,data,cm){
     }
   });
   const strip=document.getElementById('annual-strip-'+person); if(!strip)return;
-  const totals=[2023,2024,2025,2026].map(yr=>(monthly[yr]||[]).reduce((a,v)=>a+(v??0),0));
+  const endM=cm.month;
+  const totals=[2023,2024,2025,2026].map(yr=>sumYtd(monthly,yr,endM));
   strip.innerHTML=[2023,2024,2025,2026].map((yr,i)=>{
-    const isYTD=yr===2026;
-    const prev=totals[i-1];
-    const delta=i>0&&prev?((totals[i]-prev)/prev*100):null;
-    const dStr=delta!==null?`<div class="ak-delta ${delta>=0?'color-green':'color-red'}">${delta>=0?'+':''}${delta.toFixed(1)}% vs ${yr-1}</div>`:'';
-    return`<div class="annual-kpi"><div class="ak-year">${yr}${isYTD?' YTD':''}</div><div class="ak-val">${fmtEur(totals[i])}</div>${dStr}</div>`;
+    const prevTot=i>0?totals[i-1]:null;
+    let delta=null;
+    if(i>0&&prevTot!==null&&prevTot>0) delta=((totals[i]-prevTot)/prevTot)*100;
+    const dStr=delta!==null&&!isNaN(delta)?`<div class="ak-delta ${delta>=0?'color-green':'color-red'}">${delta>=0?'+':''}${delta.toFixed(1)}% vs ${yr-1}</div>`:'';
+    return`<div class="annual-kpi"><div class="ak-year">${yr} YTD</div><div class="ak-val">${fmtEur(totals[i])}</div>${dStr}</div>`;
   }).join('');
 }
 
@@ -1203,10 +1239,6 @@ function renderPanel(person,data,cm){
   const subEl=document.getElementById('kpi-devproy-'+person);
   if(pr){ const pd=deviationInfo(pr,obj); subEl.textContent='Proy.: '+pd.text; }
   else subEl.textContent='Proyección no disponible';
-
-  const badge=document.getElementById('dev-badge-'+person);
-  if(real!==null){ badge.textContent=dv.text; badge.className=`section-badge ${dv.sign>0?(isC?'blue':'ugreen'):dv.sign<0?'red':'gray'}`; }
-  else { badge.textContent='Sin datos aún'; badge.className='section-badge gray'; }
 
   const pct=obj>0&&real!==null?Math.min((real/obj)*100,100):0;
   const fill=document.getElementById('prog-fill-'+person);
