@@ -562,6 +562,8 @@ html, body {
     <div class="btn-row">
       <button class="btn btn-primary"   onclick="parseERPData()">Analizar datos</button>
       <button class="btn btn-secondary" onclick="clearERP()">Limpiar</button>
+      <button class="btn btn-secondary" onclick="configureGithubToken()">Configurar token GitHub</button>
+      <button class="btn btn-secondary" onclick="clearGithubToken()">Borrar token GitHub</button>
     </div>
     <div id="erp-alert-wrap"></div>
     <div id="erp-preview" class="hidden"></div>
@@ -787,6 +789,22 @@ function buildDataJsonFromLS(){
   };
 }
 function toB64Utf8(s){ return btoa(unescape(encodeURIComponent(s))); }
+function configureGithubToken(){
+  const prev = localStorage.getItem(GH_SYNC_CFG.tokenKey);
+  const token = prompt('Pega tu token de GitHub (permiso Contents: Read and write):', prev||'');
+  if(token===null) return;
+  const t = token.trim();
+  if(!t){
+    showERPAlert('Token vacío. No se guardó ningún token.','warning');
+    return;
+  }
+  localStorage.setItem(GH_SYNC_CFG.tokenKey, t);
+  showERPAlert('Token de GitHub guardado correctamente.','success');
+}
+function clearGithubToken(){
+  localStorage.removeItem(GH_SYNC_CFG.tokenKey);
+  showERPAlert('Token de GitHub eliminado.','success');
+}
 async function syncDataJsonToGitHub(){
   let token = localStorage.getItem(GH_SYNC_CFG.tokenKey);
   if(!token){
