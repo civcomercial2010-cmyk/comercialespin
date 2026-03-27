@@ -111,6 +111,7 @@ html, body {
 .section-badge.blue   { background: var(--blue-lt);  color: #0f3a9a; }
 .section-badge.ugreen { background: var(--green-lt); color: #0a6641; }
 .section-badge.gray   { background: var(--srf2); color: var(--txt2); }
+.kpi-value.nowrap { white-space: nowrap; }
 /* KPI GRID */
 .kpi-grid { display: grid; gap: 14px; margin-bottom: 18px; }
 .kpi-g4 { grid-template-columns: repeat(4,1fr); }
@@ -344,7 +345,7 @@ html, body {
       </div>
       <div class="kpi-card" id="kpi-dev-card-cavero">
         <div class="kpi-label">Desviación vs objetivo</div>
-        <div class="kpi-value" id="kpi-dev-cavero">—</div>
+        <div class="kpi-value nowrap" id="kpi-dev-cavero">—</div>
         <div class="kpi-sub" id="kpi-devproy-cavero">—</div>
       </div>
     </div>
@@ -455,7 +456,7 @@ html, body {
       </div>
       <div class="kpi-card" id="kpi-dev-card-ursula">
         <div class="kpi-label">Desviación vs objetivo</div>
-        <div class="kpi-value" id="kpi-dev-ursula">—</div>
+        <div class="kpi-value nowrap" id="kpi-dev-ursula">—</div>
         <div class="kpi-sub" id="kpi-devproy-ursula">—</div>
       </div>
     </div>
@@ -1018,6 +1019,19 @@ function rolling12(person,data){
   return r;
 }
 
+function getMonthlyWithProjection(person,data,cm){
+  const monthly = {};
+  for(const yr of [2023,2024,2025,2026]){
+    monthly[yr] = [...(data[person].monthly[yr]||Array(12).fill(null))];
+  }
+  if(cm && monthly[cm.year]){
+    const realCur = monthly[cm.year][cm.month];
+    const p = proy(realCur, cm.elapsedDays, cm.totalDays);
+    if(p!==null) monthly[cm.year][cm.month] = p;
+  }
+  return monthly;
+}
+
 const charts={};
 function dc(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
 const CC={
@@ -1069,10 +1083,11 @@ function buildChart2026(person,data,cm){
   });
 }
 
-function buildChartRolling(person,data){
+function buildChartRolling(person,data,cm){
   const id='chart-rolling-'+person; dc(id);
   const canvas=document.getElementById(id); if(!canvas)return;
-  const r=rolling12(person,data);
+  const projData = { ...data, [person]: { ...data[person], monthly: getMonthlyWithProjection(person,data,cm) } };
+  const r=rolling12(person,projData);
   const labels=r.map(x=>`${MONTHS_SHORT[x.month]} ${x.year}`);
   const vals=r.map(x=>x.value);
   const last=r[r.length-1];
@@ -1106,12 +1121,13 @@ function buildChartRolling(person,data){
   });
 }
 
-function buildChartAnnual(person,data){
+function buildChartAnnual(person,data,cm){
   const id='chart-annual-'+person; dc(id);
   const canvas=document.getElementById(id); if(!canvas)return;
   const palette=person==='cavero'?CC.annC:CC.annU;
+  const monthly = getMonthlyWithProjection(person,data,cm);
   const datasets=[2023,2024,2025,2026].map((yr,i)=>({
-    label:String(yr),data:data[person].monthly[yr]||Array(12).fill(null),
+    label:String(yr),data:monthly[yr]||Array(12).fill(null),
     borderColor:palette[i],backgroundColor:'transparent',
     borderWidth:i===3?3:2,pointRadius:i===3?4:2,
     pointHoverRadius:6,tension:0.3,spanGaps:false
@@ -1131,7 +1147,7 @@ function buildChartAnnual(person,data){
     }
   });
   const strip=document.getElementById('annual-strip-'+person); if(!strip)return;
-  const totals=[2023,2024,2025,2026].map(yr=>(data[person].monthly[yr]||[]).reduce((a,v)=>a+(v??0),0));
+  const totals=[2023,2024,2025,2026].map(yr=>(monthly[yr]||[]).reduce((a,v)=>a+(v??0),0));
   strip.innerHTML=[2023,2024,2025,2026].map((yr,i)=>{
     const isYTD=yr===2026;
     const prev=totals[i-1];
@@ -1173,7 +1189,7 @@ function renderPanel(person,data,cm){
   const dv=deviationInfo(real,obj);
   const dvEl=document.getElementById('kpi-dev-'+person);
   dvEl.textContent=real!==null?dv.text:'—';
-  dvEl.className=`kpi-value ${dv.cls||'muted'}`;
+  dvEl.className=`kpi-value nowrap ${dv.cls||'muted'}`;
   document.getElementById('kpi-dev-card-'+person).className=
     'kpi-card accent-'+(dv.sign>0?'green':dv.sign<0?'red':'gray');
 
@@ -1223,8 +1239,8 @@ function renderPanel(person,data,cm){
 
   renderBonosTable(person,data,cm);
   buildChart2026(person,data,cm);
-  buildChartRolling(person,data);
-  buildChartAnnual(person,data);
+  buildChartRolling(person,data,cm);
+  buildChartAnnual(person,data,cm);
 }
 
 function renderBonosTable(person,data,cm){
@@ -1707,7 +1723,7 @@ function showTab(tab){
   document.getElementById('tab-'+tab).className='tab-btn active-'+tab;
   if((tab==='cavero'||tab==='ursula')&&!chartsRendered[tab]){
     const data=getMerged();
-    buildChart2026(tab,data,activeCM); buildChartRolling(tab,data); buildChartAnnual(tab,data);
+    buildChart2026(tab,data,activeCM); buildChartRolling(tab,data,activeCM); buildChartAnnual(tab,data,activeCM);
     chartsRendered[tab]=true;
   }
 }
