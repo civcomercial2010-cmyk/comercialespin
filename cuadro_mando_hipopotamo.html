@@ -290,7 +290,7 @@ html, body {
 <header class="app-header">
   <div class="app-header-left">
     <div class="app-logo">
-      <img src="./logo_huella.jpg" alt="Hipopótamo" width="32" height="32" style="display:block; border-radius:6px; object-fit:contain;">
+      <img src="./Huella_HIPOPOTAMO.png" alt="Hipopótamo" width="32" height="32" style="display:block; border-radius:6px; object-fit:contain;">
     </div>
     <div>
       <div class="app-title">Hipopótamo Pinturas y Decoración S.L.</div>
@@ -759,13 +759,17 @@ const HC = {
   }
 };
 
-const FESTIVOS = [
+const FESTIVOS = new Set([
   '2026-01-01','2026-01-06','2026-03-05','2026-04-02',
   '2026-04-03','2026-04-23','2026-05-01','2026-10-12',
-  '2026-11-01','2026-12-06','2026-12-08','2026-12-25'
-].map(s=>{ const d=new Date(s+'T12:00:00'); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); });
+  // En 2026, Todos los Santos y Constitución caen en domingo y se observan el lunes.
+  '2026-11-02','2026-12-07','2026-12-08','2026-12-25'
+]);
 
-function isFest(d){ return FESTIVOS.includes(d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()); }
+function ymdLocal(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function isFest(d){ return FESTIVOS.has(ymdLocal(d)); }
 function isWork(d){ const w=d.getDay(); return w!==0&&w!==6&&!isFest(d); }
 function countWork(from,to){
   let n=0; const d=new Date(from); d.setHours(12,0,0,0);
