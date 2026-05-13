@@ -64,7 +64,9 @@ def load_config() -> dict:
         "asunto_contiene":    os.environ.get("ASUNTO_FILTRO",  "Ventas por caja"),
         "remitente_contiene": os.environ.get("REMITENTE",      "reportes@hipopotamo.com"),
         "nombre_adjunto":     "Ventas por caja.xlsx",
-        "buscar_ultimas_horas": 96,
+        # Ventana amplia para no perder informes cuando haya fines de semana, festivos
+        # o retrasos operativos en el envío del correo.
+        "buscar_ultimas_horas": 240,
         "hoja_excel":         "VENTAS",
         "vendedor_cavero":    "26",
         "vendedor_ursula":    "61",
@@ -342,11 +344,15 @@ def detect_fecha_generacion(ws) -> date | None:
 
 
 def comercial_month_from_date(fecha_hasta: date) -> tuple[int, int]:
-    if fecha_hasta.day <= 25:
-        return fecha_hasta.year, fecha_hasta.month
-    if fecha_hasta.month == 12:
-        return fecha_hasta.year + 1, 1
-    return fecha_hasta.year, fecha_hasta.month + 1
+    """
+    Determina el mes comercial (1-12) a partir del campo "Fecha hasta" del ERP.
+
+    En algunos extractos, "Fecha hasta" puede venir un día posterior al corte real
+    (p.ej. 26/04 aunque las ventas correspondan al cierre del 25/04). En ese caso
+    el mes del cuadro debe mantenerse como el mes calendario de "Fecha hasta" para
+    que Abril no desaparezca.
+    """
+    return fecha_hasta.year, fecha_hasta.month
 
 
 def parse_iso_date_only(s: str | None) -> date | None:
@@ -418,7 +424,8 @@ def extract_data(xlsx_path: Path, cfg: dict) -> dict:
         log.warning(f"Usando hoja: '{sheet_name}'")
     ws = wb[sheet_name]
 
-    fecha_gen = detect_fecha_generacion(ws)
+    dt_gen = _parse_generacion_datetime_from_sheet(ws)
+    fecha_gen = dt_gen.date() if dt_gen else None
     fecha_hasta = detect_fecha_hasta(ws)
     if not fecha_hasta:
         log.error("No se detectó 'Fecha hasta'.")

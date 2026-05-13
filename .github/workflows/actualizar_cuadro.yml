@@ -5,9 +5,13 @@ env:
 
 on:
   schedule:
-    # Dos disparos para cubrir CET/CEST; solo continuará si en España son las 20:30
-    - cron: '30 18 * * 1-5'
-    - cron: '30 19 * * 1-5'
+    # 20:05 hora española exacta en ambas estaciones (necesario porque GitHub cron es UTC fijo):
+    # 18:05 UTC = 20:05 CEST (verano, UTC+2, mar–oct)
+    # 19:05 UTC = 20:05 CET  (invierno, UTC+1, oct–mar)
+    # En verano dispara a las 18:05 UTC (correcto) y también a las 19:05 UTC (1h después, inócuo).
+    # En invierno dispara a las 18:05 UTC (1h antes del correo, no lo encuentra) y a las 19:05 UTC (correcto).
+    - cron: '05 18 * * *'
+    - cron: '05 19 * * *'
   workflow_dispatch:
     inputs:
       force_run:
@@ -18,6 +22,10 @@ on:
 jobs:
   actualizar:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: actualizar-cuadro-main
+      cancel-in-progress: false
     permissions:
       contents: write
 
@@ -36,29 +44,7 @@ jobs:
       - name: Instalar dependencias
         run: pip install openpyxl
 
-      - name: Comprobar hora España (ventana ~20:30)
-        id: hora
-        env:
-          TZ: Europe/Madrid
-        run: |
-          HM=$(date +%H%M)
-          echo "Hora local (Europe/Madrid): $(date '+%H:%M') (HM=$HM)"
-          # Ejecución manual: siempre actualiza (el usuario ha pulsado "Run workflow")
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Ejecución manual: se ejecuta el extractor."
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          # Programado: ventana 20:00–21:59 (Madrid). La cola de GitHub puede retrasar el job
-          # ~30 min (p. ej. paso "Comprobar hora" a las 21:00); ventanas cortas dejan run=false.
-          if [ "$HM" -ge 2000 ] && [ "$HM" -le 2159 ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Ejecutar extractor
-        if: steps.hora.outputs.run == 'true'
         env:
           TZ: Europe/Madrid
           GMAIL_USER:     ${{ secrets.GMAIL_USER }}
@@ -68,7 +54,6 @@ jobs:
         run: python extractor_ventas_actions.py
 
       - name: Commit y push si hay cambios
-        if: steps.hora.outputs.run == 'true'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
