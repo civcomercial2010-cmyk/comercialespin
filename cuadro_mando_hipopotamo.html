@@ -636,6 +636,7 @@ html, body {
 
     <div class="btn-row mt-16">
       <button class="btn btn-primary" onclick="saveBudgets()">Guardar presupuestos</button>
+      <span style="font-size:12px;color:var(--txt3);margin-left:8px;">Se almacenan en data.json de GitHub si tienes token configurado (pestaña ERP).</span>
       <button class="btn btn-secondary" onclick="resetBudgets()">Restaurar valores por defecto</button>
     </div>
     <div id="budget-alert" class="hidden" style="margin-top:10px;"></div>
@@ -697,6 +698,11 @@ html, body {
             });
           });
         }
+        if(_d[p].budget2026 && Array.isArray(_d[p].budget2026)){
+          if(!ls[p].budget2026 || !ls[p].budget2026.length){
+            ls[p].budget2026 = _d[p].budget2026.slice();
+          }
+        }
       });
       if(_d.lastLoadDate && preferRemote) ls.lastLoadDate=_d.lastLoadDate;
       else if(_d.lastLoadDate && !ls.lastLoadDate) ls.lastLoadDate=_d.lastLoadDate;
@@ -707,6 +713,17 @@ html, body {
 const MONTHS_ES    = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const LS_KEY = 'hipopotamo_v2';
+let cachedRemoteJson = null;
+
+function mergeBudgetArrays(hcArr, remoteArr, lsArr){
+  return hcArr.map((hc,i)=>{
+    const lsVal = lsArr?.[i];
+    if(lsArr && lsVal!==null && lsVal!==undefined && !isNaN(Number(lsVal))) return Math.round(Number(lsVal));
+    const remoteVal = remoteArr?.[i];
+    if(remoteArr && remoteVal!==null && remoteVal!==undefined && !isNaN(Number(remoteVal))) return Math.round(Number(remoteVal));
+    return hc;
+  });
+}
 
 const HC = {
   cavero: {
@@ -880,14 +897,17 @@ function normMonthly(src){
 }
 function buildDataJsonFromLS(){
   const ls=loadLS();
+  const data = getMerged();
   return {
     cavero: {
+      budget2026: data.cavero.budget2026,
       monthly: normMonthly(ls?.cavero?.monthly),
       industria: cloneObj(ls?.cavero?.industria),
       distribuidores: cloneObj(ls?.cavero?.distribuidores),
       bonos: cloneObj(ls?.cavero?.bonos)
     },
     ursula: {
+      budget2026: data.ursula.budget2026,
       monthly: normMonthly(ls?.ursula?.monthly),
       bonos: cloneObj(ls?.ursula?.bonos)
     },
@@ -961,13 +981,15 @@ async function syncDataJsonToGitHub(){
    Si lo encuentra, fusiona con localStorage: si data.json es más reciente
    (lastRunTs), sustituye ventas/industria/distribuidores/bonos; si no, solo
    rellena huecos. El hardcode HC sigue teniendo prioridad en getMerged() donde
-   corresponde. Presupuestos (budget2026) no se tocan aquí.
+   corresponde. Presupuestos (budget2026) se cargan desde data.json y no se
+   sobrescriben si ya hay valores guardados en localStorage.
 ─────────────────────────────────────────────────────────────────── */
 async function tryLoadDataJson(){
   try {
     const resp = await fetch('./data.json?_=' + Date.now(), {cache:'no-store'});
     if(!resp.ok) return false;
     const remote = await resp.json();
+    cachedRemoteJson = remote;
 
     const ls = loadLS();
     const remoteTs = remote.lastRunTs ? new Date(remote.lastRunTs).getTime() : 0;
@@ -1033,6 +1055,13 @@ async function tryLoadDataJson(){
           }
         }
       }
+
+      // Presupuestos: data.json → localStorage solo si aún no hay fila guardada
+      if(remote[person].budget2026 && Array.isArray(remote[person].budget2026)){
+        if(!ls[person].budget2026 || !ls[person].budget2026.length){
+          ls[person].budget2026 = remote[person].budget2026.slice();
+        }
+      }
     }
 
     // Mantener lastLoadDate actualizado sin retroceder.
@@ -1070,11 +1099,10 @@ function log_sync_banner(fechaHasta, runTs){
 
 function getMerged(){
   const ls=loadLS();
-  // Budgets: LS overrides HC if present
-  const lsBudC = ls?.cavero?.budget2026;
-  const lsBudU = ls?.ursula?.budget2026;
-  const budC = lsBudC ? HC.cavero.budget2026.map((v,i)=>lsBudC[i]??v) : [...HC.cavero.budget2026];
-  const budU = lsBudU ? HC.ursula.budget2026.map((v,i)=>lsBudU[i]??v) : [...HC.ursula.budget2026];
+  const remote=cachedRemoteJson||{};
+  // Presupuestos: navegador (LS) > data.json (GitHub) > valores por defecto HC
+  const budC = mergeBudgetArrays(HC.cavero.budget2026, remote.cavero?.budget2026, ls?.cavero?.budget2026);
+  const budU = mergeBudgetArrays(HC.ursula.budget2026, remote.ursula?.budget2026, ls?.ursula?.budget2026);
   // Bonos: HC hardcoded (2025) + localStorage (meses posteriores via ERP/manual)
   // LS wins para el mismo mes (datos más recientes tienen prioridad)
   const mergedBonosC = Object.assign({}, HC.cavero.bonos||{}, ls?.cavero?.bonos||{});
@@ -1745,7 +1773,7 @@ function updateBudgetTotals(){
   if(eU) eU.textContent = new Intl.NumberFormat('es-ES').format(Math.round(totU))+' €';
 }
 
-function saveBudgets(){
+async function saveBudgets(){
   const budC=[], budU=[];
   for(let m=0;m<12;m++){
     const vC=parseFloat(document.getElementById('bud-c-'+m)?.value);
@@ -1757,14 +1785,25 @@ function saveBudgets(){
   ls.cavero=ls.cavero||{}; ls.ursula=ls.ursula||{};
   ls.cavero.budget2026=budC;
   ls.ursula.budget2026=budU;
+  ls.budgetsSavedAt=new Date().toISOString();
   saveLS(ls);
-  // Re-init editor to show "editado" badges
+  cachedRemoteJson = cachedRemoteJson || {};
+  cachedRemoteJson.cavero = cachedRemoteJson.cavero || {};
+  cachedRemoteJson.ursula = cachedRemoteJson.ursula || {};
+  cachedRemoteJson.cavero.budget2026 = budC;
+  cachedRemoteJson.ursula.budget2026 = budU;
   initBudgetEditor();
-  // Refresh panels
   const data=getMerged();
   renderPanel('cavero',data,activeCM); renderPanel('ursula',data,activeCM);
   chartsRendered={cavero:true,ursula:true};
-  showBudgetAlert('Presupuestos guardados correctamente.','success');
+  const sync = await syncDataJsonToGitHub();
+  if(sync.ok){
+    showBudgetAlert('Presupuestos guardados en el cuadro y en data.json (GitHub). Se mantendrán al recargar o cambiar de mes.','success');
+  } else if(sync.skipped){
+    showBudgetAlert('Guardados en este navegador. Para fijarlos en GitHub Pages (todos los dispositivos), configura el token en la pestaña ERP y vuelve a pulsar Guardar presupuestos.','warning');
+  } else {
+    showBudgetAlert('Guardados en este navegador, pero no se pudo subir data.json a GitHub. Revisa el token o inténtalo de nuevo.','warning');
+  }
 }
 
 function resetBudgets(){

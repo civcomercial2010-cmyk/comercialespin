@@ -42,5 +42,7 @@ Archivos como `__pycache__/` o `*.log` están en `.gitignore` para no ensuciar c
 - Si el correo llegó **después** de la ventana ~20:30 (España) de ese día, el job ya habrá corrido con el Excel anterior; en ese caso usa **Run workflow** en GitHub (pestaña *Actions*) para procesar de inmediato.
 - Revisa en *Actions* el último run: si el paso del extractor no se ejecutó o falló (IMAP, adjunto, secrets `GMAIL_*`, `ASUNTO_FILTRO`, `REMITENTE`), el `data.json` no cambiará.
 - El job programado solo continúa si, al ejecutarse el paso de hora en **Europe/Madrid**, la hora cae en la ventana **20:00–21:59** (para tolerar retrasos de la cola de GitHub). Si el log muestra p. ej. `21:00` y antes la ventana era demasiado estrecha, el extractor no llegaba a lanzarse.
+- Los **presupuestos 2026** (Antonio / Úrsula) viven en `data.json` y en el navegador. Tras editarlos en *Datos y ajustes*, pulsa **Guardar presupuestos** con el token de GitHub configurado (pestaña ERP) para que queden en el repositorio y no se pierdan al recargar o cambiar de mes.
+
 - El extractor elige el adjunto con la **fecha y hora de generación del informe** leídas del Excel (texto tipo `Fecha: 27/03/26 Hora: 20:21:00`, celda fecha/hora, etc.), no la hora de recepción en Gmail. El candidato **más reciente** gana; si hubiera empate exacto, se usa el **UID IMAP** más alto. La lectura se hace en la hoja **VENTAS**.
 

@@ -568,6 +568,7 @@ def update_json(result: dict):
     existing["cavero"].setdefault("bonos",          {})
     existing["ursula"].setdefault("monthly",        {})
     existing["ursula"].setdefault("bonos",          {})
+    # Presupuestos: no los toca el extractor; solo se conservan si ya existen en data.json.
 
     existing["cavero"]["monthly"].setdefault(str(yr), [None]*12)
     existing["ursula"]["monthly"].setdefault(str(yr), [None]*12)
@@ -663,6 +664,11 @@ def build_html(data_payload: dict):
         "              else if(ls[p].bonos[k][bk]===null || ls[p].bonos[k][bk]===undefined) ls[p].bonos[k][bk]=bv;",
         "            });",
         "          });",
+        "        }",
+        "        if(_d[p].budget2026 && Array.isArray(_d[p].budget2026)){",
+        "          if(!ls[p].budget2026 || !ls[p].budget2026.length){",
+        "            ls[p].budget2026 = _d[p].budget2026.slice();",
+        "          }",
         "        }",
         "      });",
         "      if(_d.lastLoadDate && preferRemote) ls.lastLoadDate=_d.lastLoadDate;",
