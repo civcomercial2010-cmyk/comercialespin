@@ -445,7 +445,7 @@ html, body {
       <div class="kpi-card accent-green">
         <div class="kpi-label">Venta real</div>
         <div class="kpi-value green" id="kpi-real-ursula">—</div>
-        <div class="kpi-sub">Total vendedor 61</div>
+        <div class="kpi-sub">Grupo profesionales</div>
       </div>
       <div class="kpi-card accent-amber">
         <div class="kpi-label">Proyección mes</div>
@@ -557,8 +557,8 @@ html, body {
       <strong>Instrucciones:</strong> Abre <em>Ventas por caja.xlsx</em> → hoja <em>VENTAS</em>.
       Selecciona todo (Ctrl+A), cópialo (Ctrl+C) y pégalo abajo.<br>
       El sistema detecta el mes por la línea <em>"Fecha hasta"</em> y extrae:
-      Cavero (vendedor 26 · PROFESIONALES + INDUSTRIA + DISTRIBUIDORES)
-      y Úrsula (fila "Total vendedor 61" · columna D).
+      Cavero (vendedor 26) y Úrsula (vendedor 61): venta de profesionales = suma de filas
+      <strong>PROFESIONALES + FINALES</strong> (más Industria y Distribuidores solo en Cavero).
       La fecha que aparece en la cabecera del cuadro se actualizará con la fecha del archivo.
     </div>
 
@@ -728,7 +728,7 @@ function mergeBudgetArrays(hcArr, remoteArr, lsArr){
 const HC = {
   cavero: {
     budget2026: [63000,77000,81000,82000,91500,92000,97000,66000,92000,80500,86000,82000],
-    /* monthly = solo grupo Profesionales (mismo criterio que KPI y extractores; nunca total con Ind+Dist). */
+    /* monthly = PROFESIONALES + FINALES (mismo criterio que KPI y extractores; nunca total con Ind+Dist). */
     monthly: {
       2023:[58083,66396,82899,69020,80160,75401,89730,62039,71003,78199,82111,79914],
       2024:[67771,71061,80457,98811,85229,80531,72108,52790,89149,68877,69733,71648],
@@ -1449,6 +1449,11 @@ function parseAmount(str){
   const v=parseFloat(s); return isNaN(v)?null:v;
 }
 
+function isProfesionalesGrupo(grupo){
+  const g=(grupo||'').toUpperCase();
+  return g.includes('PROFESIONAL')||g.includes('FINAL');
+}
+
 function parseERPData(){
   const text=document.getElementById('erp-textarea').value.trim();
   if(!text){showERPAlert('Pega el contenido del Excel antes de analizar.','warning');return;}
@@ -1488,8 +1493,8 @@ function parseERPData(){
   }
 
   // Parsear filas de datos
-  let cavProf=0,cavInd=0,cavDist=0;
-  let cavBA=null,cavBC=null,ursTotal=null,ursBA=null,ursBC=null;
+  let cavProf=0,cavInd=0,cavDist=0,ursProf=0;
+  let cavBA=null,cavBC=null,ursBA=null,ursBC=null;
   let inVendSection=false;
 
   for(const line of lines){
@@ -1513,16 +1518,18 @@ function parseERPData(){
       continue;
     }
     if(/^total\s+vendedor\s+61\b/i.test(c0)){
-      if(importe!=null) ursTotal=Math.round(importe*100)/100;
       const ct=getVal(colConsumoT),at=getVal(colAltaT);
       if(at!=null) ursBA=Math.round(Math.abs(at));
       if(ct!=null) ursBC=Math.round(Math.abs(ct));
       continue;
     }
     if(c0==='26'&&importe!=null){
-      if(grupo.includes('PROFESIONAL'))                        cavProf+=importe;
+      if(isProfesionalesGrupo(grupo))                          cavProf+=importe;
       else if(grupo.includes('DISTRIBU')||grupo==='DIS V2')    cavDist+=importe;
       else if(grupo.includes('INDUSTRIA'))                     cavInd +=importe;
+    }
+    if(c0==='61'&&importe!=null){
+      if(isProfesionalesGrupo(grupo))                          ursProf+=importe;
     }
   }
 
@@ -1549,7 +1556,7 @@ function parseERPData(){
     cavProf:cavProf>0?Math.round(cavProf):null,
     cavInd:cavInd>0?Math.round(cavInd):null,
     cavDist:cavDist>0?Math.round(cavDist):null,
-    ursula:ursTotal,
+    ursula:ursProf>0?Math.round(ursProf*100)/100:null,
     bonos:{c:{altas:cavBA,consumo:cavBC},u:{altas:ursBA,consumo:ursBC}}
   };
 
@@ -1582,7 +1589,7 @@ function parseERPData(){
     +editRow('cav-baltas','Alta bonos',parsedERP.bonos.c.altas)
     +editRow('cav-bcons','Consumo bono',parsedERP.bonos.c.consumo)
     +'<div style="padding:8px 18px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);border-top:1px solid var(--bdr);margin-top:4px;">Úrsula Moreno</div>'
-    +editRow('urs-total','Venta total',parsedERP.ursula)
+    +editRow('urs-total','Profesionales',parsedERP.ursula)
     +editRow('urs-baltas','Alta bonos',parsedERP.bonos.u.altas)
     +editRow('urs-bcons','Consumo bono',parsedERP.bonos.u.consumo);
 

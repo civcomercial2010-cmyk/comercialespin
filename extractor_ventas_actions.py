@@ -343,6 +343,12 @@ def detect_fecha_generacion(ws) -> date | None:
     return None
 
 
+def is_profesionales_grupo(grupo: str) -> bool:
+    """Venta profesionales del cuadro = filas PROFESIONALES + FINALES."""
+    g = (grupo or "").upper()
+    return "PROFESIONAL" in g or "FINAL" in g
+
+
 def comercial_month_from_date(fecha_hasta: date) -> tuple[int, int]:
     """
     Determina el mes comercial (1-12) a partir del campo "Fecha hasta" del ERP.
@@ -458,7 +464,8 @@ def extract_data(xlsx_path: Path, cfg: dict) -> dict:
 
     cav_prof = cav_dist = cav_ind = 0.0
     cav_bonos_altas = cav_bonos_consumo = None
-    urs_total = urs_bonos_altas = urs_bonos_consumo = None
+    urs_prof = 0.0
+    urs_bonos_altas = urs_bonos_consumo = None
 
     def get_float(row, col):
         if col <= 0 or col > len(row): return 0.0
@@ -477,9 +484,14 @@ def extract_data(xlsx_path: Path, cfg: dict) -> dict:
         importe = get_float(row, col_importe)
 
         if c0 == vend_c:
-            if   'PROFESIONAL' in grupo:                        cav_prof += importe
+            if   is_profesionales_grupo(grupo):                 cav_prof += importe
             elif 'DISTRIBU'    in grupo or 'DIS V2' == grupo:  cav_dist += importe
             elif 'INDUSTRIA'   in grupo:                        cav_ind  += importe
+            continue
+
+        if c0 == vend_u:
+            if is_profesionales_grupo(grupo):
+                urs_prof += importe
             continue
 
         if re.match(r'total\s+vendedor\s+' + re.escape(vend_c) + r'\b', c0, re.IGNORECASE):
@@ -490,11 +502,10 @@ def extract_data(xlsx_path: Path, cfg: dict) -> dict:
             continue
 
         if re.match(r'total\s+vendedor\s+' + re.escape(vend_u) + r'\b', c0, re.IGNORECASE):
-            urs_total = importe
             ct = get_float(row, col_consumo_t); at = get_float(row, col_alta_t)
             if at: urs_bonos_altas   = abs(at)
             if ct: urs_bonos_consumo = abs(ct)
-            log.info(f"Total Úrsula: ventas={importe:.2f} bonos altas={at:.2f} consumo={ct:.2f}")
+            log.info(f"Total Úrsula: bonos altas={at:.2f} consumo={ct:.2f}")
             continue
 
     # Total distribuidores: fila resumen al final — a veces el texto va en col. A, a veces solo
@@ -527,7 +538,7 @@ def extract_data(xlsx_path: Path, cfg: dict) -> dict:
     wb.close()
 
     log.info(f"Cavero Prof={cav_prof:.2f} Dist={cav_dist:.2f} Ind={cav_ind:.2f}")
-    log.info(f"Úrsula Total={urs_total}")
+    log.info(f"Úrsula Prof+Final={urs_prof:.2f}")
 
     return {
         "fecha_generacion":  fecha_gen.isoformat() if fecha_gen else None,
@@ -539,7 +550,7 @@ def extract_data(xlsx_path: Path, cfg: dict) -> dict:
         "cavero_ind":         round(cav_ind,  2) if cav_ind  else None,
         "cavero_bonos_altas": round(cav_bonos_altas,   2) if cav_bonos_altas   else None,
         "cavero_bonos_cons":  round(cav_bonos_consumo, 2) if cav_bonos_consumo else None,
-        "ursula":             round(urs_total, 2) if urs_total else None,
+        "ursula":             round(urs_prof, 2) if urs_prof else None,
         "ursula_bonos_altas": round(urs_bonos_altas,   2) if urs_bonos_altas   else None,
         "ursula_bonos_cons":  round(urs_bonos_consumo, 2) if urs_bonos_consumo else None,
     }
