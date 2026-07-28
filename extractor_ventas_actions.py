@@ -207,12 +207,68 @@ def get_excel_fecha_hasta(msg, cfg: dict | None = None) -> date | None:
     return None
 
 
+def get_excel_meta(msg, cfg: dict | None = None) -> dict:
+    """
+    Lee de una sola pasada la cabecera del informe adjunto:
+      - gen:   fecha/hora de generación ("Fecha: 27/07/26 Hora: 20:00:01")
+      - desde: "Fecha desde: 26/07/26"
+      - hasta: "Fecha hasta: 25/08/26"
+    """
+    nombre_cfg = "ventas por caja"
+    for part in msg.walk():
+        fn_raw = part.get_filename()
+        if not fn_raw:
+            continue
+        fn = decode_header_value(fn_raw).strip().lower().replace(".xlmx", ".xlsx")
+        if not fn.endswith(".xlsx"):
+            continue
+        if nombre_cfg not in fn:
+            continue
+        try:
+            import io
+            data = part.get_payload(decode=True)
+            wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+            ws = _excel_primary_sheet(wb, cfg)
+            meta = {
+                "gen":   _parse_generacion_datetime_from_sheet(ws),
+                "desde": detect_fecha_desde(ws),
+                "hasta": detect_fecha_hasta(ws),
+            }
+            wb.close()
+            return meta
+        except Exception as e:
+            log.warning(f"No se pudo leer la cabecera del Excel: {e}")
+            return {"gen": None, "desde": None, "hasta": None}
+    return {"gen": None, "desde": None, "hasta": None}
+
+
+def current_commercial_period(today: date) -> tuple[date, date]:
+    """Mes comercial vigente (26 → 25) que contiene `today`."""
+    if today.day >= 26:
+        inicio = date(today.year, today.month, 26)
+        fin = date(today.year + (today.month == 12), (today.month % 12) + 1, 25)
+    else:
+        prev_y = today.year - (today.month == 1)
+        prev_m = 12 if today.month == 1 else today.month - 1
+        inicio = date(prev_y, prev_m, 26)
+        fin = date(today.year, today.month, 25)
+    return inicio, fin
+
+
 def find_best_email(conn, cfg) -> bytes | None:
     """
-    Busca entre los emails recientes el que tenga el Excel con la fecha de
-    generación MÁS RECIENTE sin superar la fecha de hoy (UTC).
-    Nota: en estos informes la "Fecha hasta" suele ser el fin del periodo
-    comercial (p.ej. 25/04) aunque hoy sea 26/03, así que NO se usa para filtrar.
+    Elige el correo cuyo Excel corresponde al MES COMERCIAL VIGENTE.
+
+    Criterio principal: "Fecha desde" del informe == inicio del periodo vigente
+    (respaldo: "Fecha hasta" == fin del periodo). Sólo entre los que casan se
+    desempata por generación más reciente y, en último término, por UID mayor.
+
+    Esto importa en el cambio de mes comercial: el ERP envía DOS informes el
+    mismo día y a la misma hora de generación (el cierre del mes anterior y el
+    del mes nuevo). Desempatar sólo por UID cogía el cierre del mes anterior.
+
+    Si ningún adjunto casa con el periodo vigente se cae al criterio antiguo
+    (generación más reciente) con un aviso, para no dejar el cuadro sin cargar.
     """
     carpeta = cfg.get("carpeta_busqueda", "INBOX")
     conn.select(carpeta, readonly=True)
@@ -236,44 +292,66 @@ def find_best_email(conn, cfg) -> bytes | None:
         log.warning("No se encontraron emails.")
         return None
 
-    log.info(f"  {len(ids)} email(s) candidato(s). Leyendo fechas de cada Excel...")
+    log.info(f"  {len(ids)} email(s) candidato(s). Leyendo cabecera de cada Excel...")
 
     today_utc = datetime.now(timezone.utc).date()
-    best_uid = None
-    best_gen: datetime | None = None
+    per_ini, per_fin = current_commercial_period(_today_madrid())
+    log.info(f"  Mes comercial vigente: {per_ini} → {per_fin}")
+
+    candidatos: list[tuple[bytes, datetime, date | None, date | None]] = []
 
     for uid in ids:
         _, full = conn.fetch(uid, "(RFC822)")
         msg = email.message_from_bytes(full[0][1])
-        gen_dt = get_excel_generacion_datetime(msg, cfg)
+        meta = get_excel_meta(msg, cfg)
+        gen_dt = meta["gen"]
 
         if gen_dt is None:
             log.info(f"  UID {uid.decode()}: sin fecha/hora de generación legible, descartado")
             continue
 
-        fecha_gen = gen_dt.date()
-        log.info(f"  UID {uid.decode()}: generación informe (Excel) = {gen_dt}")
-
-        if fecha_gen > today_utc:
-            log.info(f"  UID {uid.decode()}: fecha futura ({fecha_gen} > {today_utc}), descartado")
+        if gen_dt.date() > today_utc:
+            log.info(f"  UID {uid.decode()}: fecha futura ({gen_dt.date()} > {today_utc}), descartado")
             continue
 
-        uidn = int(uid.decode())
-        # Orden: instante de generación más reciente; empate en día/hora → UID IMAP mayor (correo más nuevo).
-        if (
-            best_gen is None
-            or gen_dt > best_gen
-            or (gen_dt == best_gen and best_uid is not None and uidn > int(best_uid.decode()))
-        ):
-            best_gen = gen_dt
-            best_uid = uid
+        log.info(
+            f"  UID {uid.decode()}: generación {gen_dt} | "
+            f"periodo {meta['desde']} → {meta['hasta']}"
+        )
+        candidatos.append((uid, gen_dt, meta["desde"], meta["hasta"]))
 
-    if best_uid is None:
+    if not candidatos:
         log.warning("Ningún email válido encontrado.")
         return None
 
-    log.info(f"Email seleccionado: UID {best_uid.decode()} generación {best_gen}")
-    return best_uid
+    def casa_periodo(desde: date | None, hasta: date | None) -> bool:
+        if desde is not None:
+            return desde == per_ini
+        if hasta is not None:
+            return hasta == per_fin
+        return False
+
+    # Orden: generación más reciente y, a igualdad, UID IMAP mayor (correo más nuevo).
+    def clave(c):
+        return (c[1], int(c[0].decode()))
+
+    vigentes = [c for c in candidatos if casa_periodo(c[2], c[3])]
+
+    if vigentes:
+        best = max(vigentes, key=clave)
+    else:
+        best = max(candidatos, key=clave)
+        log.warning(
+            f"Ningún adjunto corresponde al mes comercial vigente ({per_ini} → {per_fin}). "
+            f"Se usa el más reciente (periodo {best[2]} → {best[3]}). "
+            "Revisa el rango de fechas del informe en el ERP."
+        )
+
+    log.info(
+        f"Email seleccionado: UID {best[0].decode()} | generación {best[1]} | "
+        f"periodo {best[2]} → {best[3]}"
+    )
+    return best[0]
 
 
 # Alias para compatibilidad con el resto del código
@@ -311,6 +389,23 @@ def parse_amount(cell_value) -> float | None:
         s = s.replace(",", "")
     try: return float(s)
     except: return None
+
+def detect_fecha_desde(ws) -> date | None:
+    """'Fecha desde: 26/07/26' — inicio del periodo que cubre el informe."""
+    pattern = re.compile(
+        r"Fecha\s+desde[:\s]+(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})",
+        re.IGNORECASE
+    )
+    for row in ws.iter_rows(min_row=1, max_row=10, values_only=True):
+        for cell in row:
+            if cell is None: continue
+            m = pattern.search(str(cell))
+            if m:
+                d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+                if y < 100: y += 2000
+                try: return date(y, mo, d)
+                except: pass
+    return None
 
 def detect_fecha_hasta(ws) -> date | None:
     pattern = re.compile(
